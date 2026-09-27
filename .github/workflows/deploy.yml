@@ -79,6 +79,12 @@ jobs:
           set -euo pipefail
           "$HOME/.local/bin/godot" --headless --path . --editor --quit
 
+      - name: Run project smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 15s "$HOME/.local/bin/godot" --headless --path . --quit-after 8
+
       - name: Build Godot Web export
         shell: bash
         run: |
