@@ -56,20 +56,22 @@ jobs:
           curl -fsSL -o /tmp/godot-templates.tpz             "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
 
           unzip -q -o /tmp/godot-templates.tpz -d "$tmp_templates"
+          test -d "$tmp_templates/templates"
 
-          if [ -d "$tmp_templates/templates/${GODOT_VERSION}.stable" ]; then
-            cp -a "$tmp_templates/templates/${GODOT_VERSION}.stable/." "$templates_dir/"
-          elif [ -d "$tmp_templates/${GODOT_VERSION}.stable" ]; then
-            cp -a "$tmp_templates/${GODOT_VERSION}.stable/." "$templates_dir/"
-          else
-            echo "Unexpected Godot export-template archive layout:"
-            find "$tmp_templates" -maxdepth 3 -type f -print
-            exit 1
-          fi
+          cp -a "$tmp_templates/templates/." "$templates_dir/"
 
+          test -s "$templates_dir/version.txt"
           test -s "$templates_dir/web_nothreads_release.zip"
           test -s "$templates_dir/web_nothreads_debug.zip"
-          echo "Godot Web export templates installed in $templates_dir"
+          test -s "$templates_dir/web_release.zip"
+          test -s "$templates_dir/web_debug.zip"
+
+          expected_version="${GODOT_VERSION}.stable"
+          actual_version="$(head -n 1 "$templates_dir/version.txt" | tr -d '\r')"
+          test "$actual_version" = "$expected_version"
+
+          echo "Installed Godot templates:"
+          ls -lh "$templates_dir/web_"*.zip
 
       - name: Validate Godot project
         shell: bash
