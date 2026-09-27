@@ -11,53 +11,161 @@ var bridge_built := false
 func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySystem) -> void:
     inventory = p_inventory
     discovery = p_discovery
-    crafting = get_parent().get_node("Systems/Crafting")
-    _make_box("Water", Vector3(0, -0.15, -25), Vector3(70, 0.2, 22), Color(0.10, 0.32, 0.48, 1), false)
-    _make_box("Beach", Vector3(0, 0.02, -8), Vector3(70, 0.1, 12), Color(0.68, 0.56, 0.36, 1), false)
-    _make_box("Ridge", Vector3(10, 1.4, 9), Vector3(16, 2.8, 10), Color(0.24, 0.29, 0.20, 1), true)
-    _make_box("Ridge2", Vector3(-18, 1.0, 16), Vector3(20, 2.0, 8), Color(0.28, 0.31, 0.22, 1), true)
-    for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4)]:
+    crafting = get_parent().get_node("Crafting")
+    _make_water()
+    _make_terrain()
+    for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4), Vector3(-28,0,14), Vector3(28,0,14)]:
         _make_tree(p)
-    for p in [Vector3(-20,0,3), Vector3(-16,0,8), Vector3(13,0,18), Vector3(22,0,10), Vector3(2,0,22)]:
+    for p in [Vector3(-20,0,3), Vector3(-16,0,8), Vector3(13,0,18), Vector3(22,0,10), Vector3(2,0,22), Vector3(-30,0,8)]:
         _make_rock(p)
     _make_interactable(Vector3(-3, 0.75, -1), "Campfire site", "Build campfire", _build_campfire)
     _make_interactable(Vector3(7, 0.5, -10), "Raft worksite", "Build raft", _build_raft)
     _make_interactable(Vector3(17, 0.45, -2), "Bridge site", "Build bridge", _build_bridge)
     _make_interactable(Vector3(-23, 0.7, -2), "Weathered ruin", "Inspect ruin", _inspect_ruin)
     _make_interactable(Vector3(24, 0.7, 20), "Lookout", "Survey coast", _survey_coast)
+    _make_city(Vector3(-34, 0, -2))
+    _make_shrine(Vector3(31, 0, 2))
+    _make_underwater_gate(Vector3(25, -0.5, -18))
+    _make_realm_gate(Vector3(-30, 0, -18), "Underworld", Color(0.10, 0.05, 0.12, 1), "underworld_gate")
+    _make_realm_gate(Vector3(30, 0, -18), "Heavens", Color(0.72, 0.80, 0.95, 1), "heavens_gate")
+    _make_calypso_horizon()
+    _make_wildlife(Vector3(-10, 0, 18), "Deer")
+    _make_wildlife(Vector3(20, 0, 13), "Goat")
+
+func _make_water() -> void:
+    var water := MeshInstance3D.new()
+    water.name = "Sea"
+    var mesh := BoxMesh.new()
+    mesh.size = Vector3(100, 0.18, 40)
+    water.mesh = mesh
+    water.position = Vector3(0, -0.05, -25)
+    var mat := StandardMaterial3D.new()
+    mat.albedo_color = Color(0.06, 0.34, 0.52, 0.82)
+    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mat.roughness = 0.18
+    mat.metallic = 0.05
+    water.material_override = mat
+    add_child(water)
+
+func _make_terrain() -> void:
+    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.72, 0.58, 0.38, 1), false)
+    _make_box("HillWest", Vector3(-22, 1.4, 10), Vector3(22, 2.8, 15), Color(0.25, 0.34, 0.19, 1), true)
+    _make_box("HillEast", Vector3(23, 1.0, 13), Vector3(18, 2.0, 18), Color(0.29, 0.37, 0.21, 1), true)
+    _make_box("Cliff", Vector3(0, 2.3, 28), Vector3(70, 4.6, 8), Color(0.30, 0.32, 0.25, 1), true)
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
     var trunk := MeshInstance3D.new()
     var trunk_mesh := CylinderMesh.new()
-    trunk_mesh.height = 2.4
-    trunk_mesh.top_radius = 0.32
-    trunk_mesh.bottom_radius = 0.48
+    trunk_mesh.height = 3.0
+    trunk_mesh.top_radius = 0.22
+    trunk_mesh.bottom_radius = 0.42
     trunk.mesh = trunk_mesh
-    trunk.position.y = 1.2
-    trunk.material_override = _material(Color(0.29, 0.17, 0.08, 1))
+    trunk.position.y = 1.5
+    trunk.material_override = _material(Color(0.30, 0.17, 0.07, 1))
     root.add_child(trunk)
-    var crown := MeshInstance3D.new()
-    var crown_mesh := SphereMesh.new()
-    crown_mesh.radius = 1.45
-    crown_mesh.height = 2.8
-    crown.mesh = crown_mesh
-    crown.position.y = 2.8
-    crown.material_override = _material(Color(0.12, 0.30, 0.14, 1))
-    root.add_child(crown)
-    _add_collision(root, Vector3(0, 1.2, 0), Vector3(0.9, 2.4, 0.9))
+    for data in [[Vector3(0,3.0,0),1.35],[Vector3(0.55,2.8,0.2),0.9],[Vector3(-0.5,2.65,-0.15),0.85]]:
+        var crown := MeshInstance3D.new()
+        var crown_mesh := SphereMesh.new()
+        crown_mesh.radius = data[1]
+        crown_mesh.height = data[1] * 1.8
+        crown.mesh = crown_mesh
+        crown.position = data[0]
+        crown.material_override = _material(Color(0.10, 0.31, 0.15, 1))
+        root.add_child(crown)
+    _add_collision(root, Vector3(0, 1.5, 0), Vector3(0.8, 3.0, 0.8))
 
 func _make_rock(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Stone", "Gather stone", _harvest_rock)
     var mesh := MeshInstance3D.new()
     var sphere := SphereMesh.new()
-    sphere.radius = 0.8
-    sphere.height = 1.3
+    sphere.radius = 0.85
+    sphere.height = 1.4
     mesh.mesh = sphere
-    mesh.scale = Vector3(1.2, 0.75, 1)
-    mesh.material_override = _material(Color(0.36, 0.38, 0.36, 1))
+    mesh.scale = Vector3(1.4, 0.8, 1.0)
+    mesh.material_override = _material(Color(0.39, 0.41, 0.40, 1))
     root.add_child(mesh)
-    _add_collision(root, Vector3(0, 0.5, 0), Vector3(1.5, 1, 1.5))
+    _add_collision(root, Vector3(0, 0.5, 0), Vector3(1.6, 1, 1.6))
+
+func _make_city(pos: Vector3) -> void:
+    var root := Node3D.new()
+    root.name = "AegeanCity"
+    root.position = pos
+    add_child(root)
+    _label(root, "AEGEAN CITY", Vector3(0, 5.5, 0))
+    for x in [-4.0, 0.0, 4.0]:
+        _make_house(root, Vector3(x, 0, 0), 3.0)
+    _make_box_child(root, "Gate", Vector3(0, 2.2, -4), Vector3(10, 4.4, 1), Color(0.72, 0.62, 0.43, 1))
+    _make_interactable(pos + Vector3(0,0,-5.5), "City gate", "Enter Aegean city", _enter_city)
+
+func _make_house(parent: Node3D, pos: Vector3, scale: float) -> void:
+    _make_box_child(parent, "House", pos + Vector3(0,1.2,0), Vector3(scale,2.4,scale), Color(0.70,0.62,0.48,1))
+    _make_box_child(parent, "Roof", pos + Vector3(0,2.65,0), Vector3(scale*1.15,0.35,scale*1.15), Color(0.43,0.25,0.15,1))
+
+func _make_shrine(pos: Vector3) -> void:
+    var root := Node3D.new()
+    root.name = "AthenaShrine"
+    root.position = pos
+    add_child(root)
+    _label(root, "SHRINE OF ATHENA", Vector3(0,4.5,0))
+    for x in [-2.4, 2.4]:
+        for z in [-1.6, 1.6]:
+            _make_cylinder_child(root, Vector3(x,1.4,z), 0.35, 2.8, Color(0.83,0.78,0.63,1))
+    _make_box_child(root, "Altar", Vector3(0,0.7,0), Vector3(4,1.0,2.5), Color(0.64,0.58,0.45,1))
+    _make_interactable(pos + Vector3(0,0.7,3), "Athena shrine", "Pray / listen", _visit_shrine)
+
+func _make_underwater_gate(pos: Vector3) -> void:
+    var root := Node3D.new()
+    root.name = "SunkenCave"
+    root.position = pos
+    add_child(root)
+    _label(root, "SUNKEN CAVE", Vector3(0,3,0))
+    _make_box_child(root, "LeftPillar", Vector3(-2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
+    _make_box_child(root, "RightPillar", Vector3(2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
+    _make_interactable(pos + Vector3(0,0.5,1.5), "Sunken cave", "Dive into cave", _enter_underwater)
+
+func _make_realm_gate(pos: Vector3, title: String, color: Color, discovery_id: String) -> void:
+    var root := Node3D.new()
+    root.name = title.replace(" ", "")
+    root.position = pos
+    add_child(root)
+    _label(root, title.to_upper(), Vector3(0,5,0))
+    var ring := MeshInstance3D.new()
+    var torus := TorusMesh.new()
+    torus.inner_radius = 1.7
+    torus.outer_radius = 2.1
+    ring.mesh = torus
+    ring.rotation_degrees.x = 90
+    ring.material_override = _material(color)
+    root.add_child(ring)
+    _make_interactable(pos + Vector3(0,0,2.2), title + " gate", "Discover " + title, _discover_realm.bind(discovery_id, title))
+
+func _make_calypso_horizon() -> void:
+    var island := Node3D.new()
+    island.name = "CalypsoIsland"
+    island.position = Vector3(0, 1.0, -46)
+    add_child(island)
+    _make_box_child(island, "Island", Vector3(0,0,0), Vector3(18,2,8), Color(0.20,0.35,0.19,1))
+    for x in [-5,0,5]:
+        _make_tree_child(island, Vector3(x,1,0))
+    _label(island, "CALYPSO'S ISLAND", Vector3(0,5,0))
+    _make_interactable(Vector3(0,0.4,-28), "Distant island", "Chart Calypso's island", _discover_calypso)
+
+func _make_wildlife(pos: Vector3, species: String) -> void:
+    var animal := OdysseyWildlifeAgent.new()
+    animal.name = species
+    animal.position = pos
+    animal.speed = 0.7 if species == "Deer" else 0.55
+    add_child(animal)
+    var body := MeshInstance3D.new()
+    var mesh := CapsuleMesh.new()
+    mesh.radius = 0.35
+    mesh.height = 0.9
+    body.mesh = mesh
+    body.material_override = _material(Color(0.48,0.31,0.16,1))
+    body.position.y = 0.65
+    animal.add_child(body)
+    _label(animal, species.to_upper(), Vector3(0,1.8,0))
 
 func _make_interactable(pos: Vector3, node_name: String, action_name: String, callback: Callable) -> OdysseyPrototypeInteractable:
     var node := OdysseyPrototypeInteractable.new()
@@ -73,12 +181,7 @@ func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: 
     body.name = label
     body.position = pos
     add_child(body)
-    var mesh := MeshInstance3D.new()
-    var box := BoxMesh.new()
-    box.size = size
-    mesh.mesh = box
-    mesh.material_override = _material(color)
-    body.add_child(mesh)
+    _make_box_mesh(body, size, color)
     if solid:
         var shape := CollisionShape3D.new()
         var collision := BoxShape3D.new()
@@ -86,6 +189,60 @@ func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: 
         shape.shape = collision
         body.add_child(shape)
     return body
+
+func _make_box_child(parent: Node3D, label: String, pos: Vector3, size: Vector3, color: Color) -> void:
+    var node := Node3D.new()
+    node.name = label
+    node.position = pos
+    parent.add_child(node)
+    _make_box_mesh(node, size, color)
+
+func _make_box_mesh(parent: Node3D, size: Vector3, color: Color) -> void:
+    var mesh := MeshInstance3D.new()
+    var box := BoxMesh.new()
+    box.size = size
+    mesh.mesh = box
+    mesh.material_override = _material(color)
+    parent.add_child(mesh)
+
+func _make_cylinder_child(parent: Node3D, pos: Vector3, radius: float, height: float, color: Color) -> void:
+    var mesh := MeshInstance3D.new()
+    var cylinder := CylinderMesh.new()
+    cylinder.top_radius = radius
+    cylinder.bottom_radius = radius * 1.15
+    cylinder.height = height
+    mesh.mesh = cylinder
+    mesh.position = pos
+    mesh.material_override = _material(color)
+    parent.add_child(mesh)
+
+func _make_tree_child(parent: Node3D, pos: Vector3) -> void:
+    var trunk := MeshInstance3D.new()
+    var mesh := CylinderMesh.new()
+    mesh.height = 2.5
+    mesh.top_radius = 0.22
+    mesh.bottom_radius = 0.38
+    trunk.mesh = mesh
+    trunk.position = pos + Vector3(0,1.25,0)
+    trunk.material_override = _material(Color(0.30,0.17,0.07,1))
+    parent.add_child(trunk)
+    var crown := MeshInstance3D.new()
+    var sphere := SphereMesh.new()
+    sphere.radius = 1.15
+    sphere.height = 2.1
+    crown.mesh = sphere
+    crown.position = pos + Vector3(0,2.8,0)
+    crown.material_override = _material(Color(0.10,0.31,0.15,1))
+    parent.add_child(crown)
+
+func _label(parent: Node3D, text: String, pos: Vector3) -> void:
+    var label := Label3D.new()
+    label.text = text
+    label.position = pos
+    label.font_size = 28
+    label.outline_size = 8
+    label.modulate = Color(1,0.94,0.78,0.9)
+    parent.add_child(label)
 
 func _add_collision(root: Node3D, pos: Vector3, size: Vector3) -> void:
     var body := StaticBody3D.new()
@@ -100,7 +257,7 @@ func _add_collision(root: Node3D, pos: Vector3, size: Vector3) -> void:
 func _material(color: Color) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
     mat.albedo_color = color
-    mat.roughness = 0.9
+    mat.roughness = 0.82
     return mat
 
 func _harvest_tree(node: Node, _player: Node = null) -> void:
@@ -123,7 +280,7 @@ func _build_campfire(_node: Node, _player: Node = null) -> void:
         return
     campfire_built = true
     discovery.discover("shore_camp", "opening_coast")
-    _message("Campfire built. Preparation supports exploration.")
+    _message("Campfire built. Rest, warmth and cooking belong in the survival loop.")
 
 func _build_raft(_node: Node, _player: Node = null) -> void:
     if raft_built:
@@ -134,9 +291,9 @@ func _build_raft(_node: Node, _player: Node = null) -> void:
         _message("Raft needs 12 wood and 4 rope.")
         return
     raft_built = true
-    _make_box("Raft", Vector3(7, 0.45, -10), Vector3(4, 0.35, 2.2), Color(0.45, 0.28, 0.12, 1), false)
+    _make_box("Raft", Vector3(7, 0.45, -10), Vector3(4, 0.35, 2.2), Color(0.45,0.28,0.12,1), false)
     discovery.discover("first_raft", "opening_coast")
-    _message("Raft built. The coastline is no longer the edge of the world.")
+    _message("Raft built. Water becomes a route instead of a boundary.")
 
 func _build_bridge(_node: Node, _player: Node = null) -> void:
     if bridge_built:
@@ -147,19 +304,39 @@ func _build_bridge(_node: Node, _player: Node = null) -> void:
         _message("Bridge needs 8 wood and 2 rope.")
         return
     bridge_built = true
-    _make_box("Bridge", Vector3(17, 1, -2), Vector3(7, 0.3, 2), Color(0.40, 0.25, 0.12, 1), true)
+    _make_box("Bridge", Vector3(17, 1, -2), Vector3(7,0.3,2), Color(0.40,0.25,0.12,1), true)
     discovery.discover("temporary_bridge", "opening_coast")
-    _message("Bridge constructed. One problem, multiple solutions.")
+    _message("Bridge constructed. Physical solutions are part of the design.")
 
 func _inspect_ruin(_node: Node, _player: Node = null) -> void:
     discovery.discover("weathered_ruin", "opening_coast")
-    _message("A broken Greek marker mentions an island beyond the western horizon.")
+    _message("The ruin points toward islands, cities and older powers.")
 
 func _survey_coast(_node: Node, _player: Node = null) -> void:
     discovery.discover("coastal_lookout", "opening_coast")
-    _message("From here you can see the sea, forest, and a distant island.")
+    _message("You can see a city, a shrine, a sunken cave and distant mythic gates.")
+
+func _enter_city(_node: Node, _player: Node = null) -> void:
+    discovery.discover("aegean_city", "civilization")
+    _message("Aegean city discovered: merchants, craftsmen, sailors and relationships are coming online.")
+
+func _visit_shrine(_node: Node, _player: Node = null) -> void:
+    discovery.discover("athena_shrine", "mythology")
+    _message("The shrine answers with a sign: gods can alter the journey without becoming a quest marker checklist.")
+
+func _enter_underwater(_node: Node, _player: Node = null) -> void:
+    discovery.discover("sunken_cave", "underwater")
+    _message("Dive route discovered: submerged ruins, wildlife and treasure belong beneath the surface.")
+
+func _discover_realm(discovery_id: String, title: String, _node: Node = null, _player: Node = null) -> void:
+    discovery.discover(discovery_id, "mythic_realms")
+    _message(title + " discovered. The realm is now a destination rather than a forced story corridor.")
+
+func _discover_calypso(_node: Node, _player: Node = null) -> void:
+    discovery.discover("calypso_island", "calypso")
+    _message("Calypso's island charted. Its story will be discovered through exploration and relationships.")
 
 func _message(text: String) -> void:
     var hud := get_parent().get_parent().get_node_or_null("UI/GameHUD") as OdysseyGameHUD
     if hud:
-        hud.show_message(text, 3.0)
+        hud.show_message(text, 4.0)
