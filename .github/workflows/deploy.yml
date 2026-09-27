@@ -17,6 +17,19 @@ jobs:
       image: barichello/godot-ci:4.5.1
     steps:
       - uses: actions/checkout@v4
+      - name: Install CI system dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends fontconfig ca-certificates curl unzip
+      - name: Install Godot Web export templates
+        run: |
+          mkdir -p /github/home/.local/share/godot/export_templates/4.5.1.stable
+          curl -fsSL -o /tmp/Godot_v4.5.1-stable_export_templates.tpz \
+            https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
+          unzip -q -o /tmp/Godot_v4.5.1-stable_export_templates.tpz \
+            -d /github/home/.local/share/godot/export_templates
+          test -f /github/home/.local/share/godot/export_templates/4.5.1.stable/web_nothreads_release.zip
+          test -f /github/home/.local/share/godot/export_templates/4.5.1.stable/web_nothreads_debug.zip
       - name: Build Godot Web export
         run: |
           mkdir -p build/web
