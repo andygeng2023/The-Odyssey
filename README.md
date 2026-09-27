@@ -45,3 +45,5 @@ Use only the Supabase URL and publishable/anon key in the client. Never expose t
 Open the repository in Godot 4.x and run scenes/Main.tscn. For a browser build, use the Web export preset.
 
 Current direction: mobile-first third-person open world with a systemic, physics-driven adventure loop. See docs/GAME_DESIGN.md for the full feature map. The current shore slice exposes the city, shrine, underwater cave, mythic gates, Calypso's island, wildlife, gathering, construction, survival foundations, climbing and swimming.
+
+<!-- Mobile Pages deployment trigger: 2026-09-27 -->
