@@ -95,7 +95,7 @@ func _input(event: InputEvent) -> void:
             var delta: Vector2 = drag.position - _camera_last
             _camera_last = drag.position
             if delta.length_squared() > 0.01:
-                camera_drag.emit(delta * CAMERA_SENSITIVITY / 0.0025)
+                camera_drag.emit(delta * CAMERA_SENSITIVITY)
             get_viewport().set_input_as_handled()
 
 func _draw() -> void:
