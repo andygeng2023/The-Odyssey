@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: odyssey-deploy-${{ github.ref }}
@@ -57,7 +59,6 @@ jobs:
 
           unzip -q -o /tmp/godot-templates.tpz -d "$tmp_templates"
           test -d "$tmp_templates/templates"
-
           cp -a "$tmp_templates/templates/." "$templates_dir/"
 
           test -s "$templates_dir/version.txt"
@@ -69,9 +70,6 @@ jobs:
           expected_version="${GODOT_VERSION}.stable"
           actual_version="$(head -n 1 "$templates_dir/version.txt" | tr -d '\r')"
           test "$actual_version" = "$expected_version"
-
-          echo "Installed Godot templates:"
-          ls -lh "$templates_dir/web_"*.zip
 
       - name: Validate Godot project
         shell: bash
@@ -123,6 +121,37 @@ jobs:
         with:
           name: odyssey-web-${{ github.sha }}
           path: build/web
+
+  deploy-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: odyssey-web-${{ github.sha }}
+          path: build/web
+
+      - name: Verify downloaded Web export
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s "$(find build/web -maxdepth 1 -type f -name '*.wasm' -print -quit)"
+          test -s "$(find build/web -maxdepth 1 -type f -name '*.pck' -print -quit)"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   deploy-infinityfree:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
