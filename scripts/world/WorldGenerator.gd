@@ -11,7 +11,7 @@ var bridge_built := false
 func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySystem) -> void:
     inventory = p_inventory
     discovery = p_discovery
-    crafting = get_parent().get_node("Crafting")
+    crafting = get_parent().get_node("Systems/Crafting")
     _make_box("Water", Vector3(0, -0.15, -25), Vector3(70, 0.2, 22), Color(0.10, 0.32, 0.48, 1), false)
     _make_box("Beach", Vector3(0, 0.02, -8), Vector3(70, 0.1, 12), Color(0.68, 0.56, 0.36, 1), false)
     _make_box("Ridge", Vector3(10, 1.4, 9), Vector3(16, 2.8, 10), Color(0.24, 0.29, 0.20, 1), true)
