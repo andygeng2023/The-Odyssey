@@ -11,7 +11,7 @@ var bridge_built := false
 func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySystem) -> void:
     inventory = p_inventory
     discovery = p_discovery
-    crafting = get_parent().get_node("Crafting")
+    crafting = get_parent().get_node("Systems/Crafting")
     _make_water()
     _make_terrain()
     for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4), Vector3(-28,0,14), Vector3(28,0,14)]:
@@ -337,6 +337,6 @@ func _discover_calypso(_node: Node, _player: Node = null) -> void:
     _message("Calypso's island charted. Its story will be discovered through exploration and relationships.")
 
 func _message(text: String) -> void:
-    var hud := get_parent().get_parent().get_node_or_null("UI/GameHUD") as OdysseyGameHUD
+    var hud := get_parent().get_node_or_null("UI/GameHUD") as OdysseyGameHUD
     if hud:
         hud.show_message(text, 4.0)
