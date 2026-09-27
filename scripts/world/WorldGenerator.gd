@@ -35,26 +35,47 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
 func _make_water() -> void:
     var water := MeshInstance3D.new()
     water.name = "Sea"
-    var mesh := BoxMesh.new()
-    mesh.size = Vector3(100, 0.18, 40)
+    var mesh := PlaneMesh.new()
+    mesh.size = Vector2(120, 60)
+    mesh.subdivide_width = 24
+    mesh.subdivide_depth = 12
     water.mesh = mesh
-    water.position = Vector3(0, -0.05, -25)
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color(0.06, 0.34, 0.52, 0.82)
-    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    mat.roughness = 0.18
-    mat.metallic = 0.05
+    water.position = Vector3(0, -0.04, -25)
+    var shader := Shader.new()
+    shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_alpha_prepass, cull_back;
+uniform vec4 water_color : source_color = vec4(0.035, 0.32, 0.48, 0.82);
+uniform float wave_height = 0.10;
+uniform float wave_scale = 0.22;
+void vertex() {
+    float wave_a = sin(VERTEX.x * wave_scale + TIME * 0.75);
+    float wave_b = cos(VERTEX.z * wave_scale * 1.7 + TIME * 0.52);
+    VERTEX.y += (wave_a + wave_b) * wave_height * 0.5;
+}
+void fragment() {
+    float shimmer = 0.08 * sin(UV.x * 80.0 + TIME * 1.5);
+    ALBEDO = water_color.rgb + vec3(shimmer);
+    ROUGHNESS = 0.12;
+    METALLIC = 0.08;
+    ALPHA = water_color.a;
+}
+"""
+    var mat := ShaderMaterial.new()
+    mat.shader = shader
     water.material_override = mat
     add_child(water)
 
 func _make_terrain() -> void:
-    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.78, 0.66, 0.47, 1), false)
-    _make_landform("HillWest", Vector3(-22, 1.7, 10), Vector3(18, 3.4, 14), Color(0.24, 0.38, 0.20, 1))
-    _make_landform("HillEast", Vector3(23, 1.25, 13), Vector3(16, 2.5, 17), Color(0.29, 0.43, 0.22, 1))
-    _make_landform("Cliff", Vector3(0, 2.0, 28), Vector3(72, 4.0, 8), Color(0.34, 0.34, 0.29, 1))
-    _make_box("CliffFace", Vector3(0, 1.0, 24), Vector3(72, 2.0, 1.2), Color(0.25, 0.27, 0.25, 1), true)
-    for x in [-30.0, -18.0, -6.0, 7.0, 19.0, 31.0]:
-        _make_landform("RockOutcrop", Vector3(x, 0.7, 19.0 + sin(x) * 2.0), Vector3(3.0, 1.4, 2.2), Color(0.38, 0.38, 0.34, 1))
+    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.82, 0.70, 0.50, 1), false)
+    _make_landform("HillWest", Vector3(-23, 1.9, 10), Vector3(20, 3.8, 15), Color(0.20, 0.34, 0.18, 1))
+    _make_landform("HillWestRidge", Vector3(-14, 2.6, 17), Vector3(13, 5.2, 9), Color(0.25, 0.39, 0.20, 1))
+    _make_landform("HillEast", Vector3(23, 1.5, 13), Vector3(18, 3.0, 18), Color(0.24, 0.39, 0.19, 1))
+    _make_landform("HillEastRidge", Vector3(14, 2.2, 20), Vector3(12, 4.4, 10), Color(0.29, 0.43, 0.21, 1))
+    _make_landform("Cliff", Vector3(0, 2.3, 28), Vector3(72, 4.6, 8), Color(0.32, 0.31, 0.27, 1))
+    _make_box("CliffFace", Vector3(0, 1.15, 24), Vector3(72, 2.3, 1.2), Color(0.22, 0.24, 0.23, 1), true)
+    for x in [-30.0, -22.0, -14.0, -5.0, 5.0, 14.0, 23.0, 31.0]:
+        _make_landform("RockOutcrop", Vector3(x, 0.65, 19.0 + sin(x) * 2.0), Vector3(3.2, 1.3, 2.4), Color(0.40, 0.39, 0.34, 1))
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
@@ -112,8 +133,21 @@ func _make_city(pos: Vector3) -> void:
     _make_interactable(pos + Vector3(0,0,-5.5), "City gate", "Enter Aegean city", _enter_city)
 
 func _make_house(parent: Node3D, pos: Vector3, scale: float) -> void:
-    _make_box_child(parent, "House", pos + Vector3(0,1.2,0), Vector3(scale,2.4,scale), Color(0.70,0.62,0.48,1))
-    _make_box_child(parent, "Roof", pos + Vector3(0,2.65,0), Vector3(scale*1.15,0.35,scale*1.15), Color(0.43,0.25,0.15,1))
+    _make_box_child(parent, "House", pos + Vector3(0,1.15,0), Vector3(scale,2.3,scale), Color(0.72,0.66,0.54,1))
+    _make_box_child(parent, "Trim", pos + Vector3(0,2.30,0), Vector3(scale*1.08,0.16,scale*1.08), Color(0.86,0.80,0.67,1))
+    var roof := MeshInstance3D.new()
+    var roof_mesh := CylinderMesh.new()
+    roof_mesh.top_radius = 0.0
+    roof_mesh.bottom_radius = scale * 0.78
+    roof_mesh.height = 0.75
+    roof_mesh.radial_segments = 4
+    roof.mesh = roof_mesh
+    roof.position = pos + Vector3(0,2.72,0)
+    roof.rotation_degrees.y = 45.0
+    roof.material_override = _material(Color(0.48,0.24,0.13,1))
+    parent.add_child(roof)
+    for x in [-scale * 0.32, scale * 0.32]:
+        _make_box_child(parent, "DoorFrame", pos + Vector3(x,0.85,-scale*0.51), Vector3(0.18,1.7,0.12), Color(0.38,0.25,0.16,1))
 
 func _make_shrine(pos: Vector3) -> void:
     var root := Node3D.new()
