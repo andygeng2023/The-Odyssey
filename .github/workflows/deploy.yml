@@ -87,11 +87,29 @@ jobs:
           mkdir -p build/web
           "$HOME/.local/bin/godot" --headless --path . --export-release "Web" build/web/index.html
 
-      - name: Verify Web export
+      - name: Verify and prepare Web export
         shell: bash
         run: |
           set -euo pipefail
           test -s build/web/index.html
+          wasm_file="$(find build/web -maxdepth 1 -type f -name '*.wasm' -print -quit)"
+          pck_file="$(find build/web -maxdepth 1 -type f -name '*.pck' -print -quit)"
+          test -n "$wasm_file"
+          test -s "$wasm_file"
+          test -n "$pck_file"
+          test -s "$pck_file"
+
+          cat > build/web/.htaccess <<'EOF'
+          Options -MultiViews
+          AddType application/wasm .wasm
+          AddType application/octet-stream .pck
+          <FilesMatch "\.(wasm|pck|js|html)$">
+            Header set Cache-Control "no-cache, no-store, must-revalidate"
+            Header set Pragma "no-cache"
+            Header set Expires "0"
+          </FilesMatch>
+          EOF
+
           find build/web -maxdepth 1 -type f -printf '%f\n' | sort
           printf '%s\n'             "commit=${GITHUB_SHA}"             "ref=${GITHUB_REF_NAME}"             "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"             > build/web/deployment.txt
 
