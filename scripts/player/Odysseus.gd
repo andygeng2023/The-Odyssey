@@ -29,28 +29,45 @@ func _physics_process(delta: float) -> void:
     var right := camera.global_transform.basis.x
     right.y = 0.0
     right = right.normalized()
-    var world_direction := (right * direction.x + forward * direction.y)
+    var world_direction := right * direction.x + forward * direction.y
     if world_direction.length_squared() > 0.0:
         world_direction = world_direction.normalized()
+
+    swimming = global_position.z < -17.0
+    climbing = is_on_wall() and not is_on_floor() and not swimming and world_direction.length_squared() > 0.05
+
     var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
     velocity.x = world_direction.x * current_speed
     velocity.z = world_direction.z * current_speed
-    if not is_on_floor():
+
+    if swimming:
+        velocity.y = move_toward(velocity.y, 0.0, delta * 9.0)
+        if global_position.y < 0.45:
+            velocity.y += 2.2 * delta
+    elif climbing and traversal.can_continue_traversal():
+        velocity.y = 2.6
+    elif not is_on_floor():
         velocity.y -= gravity * delta
     elif Input.is_action_just_pressed("jump"):
         velocity.y = jump_velocity
+    else:
+        velocity.y = 0.0
+
     move_and_slide()
-    traversal.tick(delta, false, swimming)
+    traversal.tick(delta, climbing, swimming)
+    if traversal.stamina <= 0.0:
+        climbing = false
 
     if world_direction.length_squared() > 0.0:
         rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 9.0)
 
 func _on_mobile_action(action: String) -> void:
-    if action == "jump" and is_on_floor():
-        velocity.y = jump_velocity
-    elif action == "interact":
-        try_interact()
-    elif action == "action":
+    if action == "jump":
+        if swimming:
+            velocity.y = 4.0
+        elif is_on_floor():
+            velocity.y = jump_velocity
+    elif action == "interact" or action == "action":
         try_interact()
 
 func try_interact() -> bool:
