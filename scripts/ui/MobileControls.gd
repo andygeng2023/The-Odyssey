@@ -7,7 +7,7 @@ signal camera_drag(delta: Vector2)
 
 const JOYSTICK_RADIUS_RATIO: float = 0.105
 const JOYSTICK_DEADZONE: float = 0.14
-const CAMERA_SENSITIVITY: float = 0.00115
+const CAMERA_SENSITIVITY: float = 0.006
 const BUTTON_SIZE: float = 88.0
 const BUTTON_GAP: float = 14.0
 const CAMERA_START_X: float = 0.38
@@ -93,7 +93,8 @@ func _input(event: InputEvent) -> void:
         if drag.index == _move_touch:
             var radius: float = maxf(74.0, minf(size.x, size.y) * JOYSTICK_RADIUS_RATIO)
             var offset: Vector2 = drag.position - _joystick_center()
-            move_vector = Vector2.ZERO if offset.length() <= radius * JOYSTICK_DEADZONE else offset.limit_length(radius) / radius
+            var stick_vector: Vector2 = Vector2.ZERO if offset.length() <= radius * JOYSTICK_DEADZONE else offset.limit_length(radius) / radius
+            move_vector = Vector2(stick_vector.x, -stick_vector.y)
             queue_redraw()
             get_viewport().set_input_as_handled()
         elif drag.index == _camera_touch:
