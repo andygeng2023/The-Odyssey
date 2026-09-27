@@ -23,3 +23,12 @@ shape = SubResource("Capsule")
 script = ExtResource("3")
 [node name="Traversal" type="Node" parent="Odysseus"]
 script = ExtResource("4")
+
+[node name="Camera3D" type="Camera3D" parent="Odysseus"]
+position = Vector3(0, 4, 8)
+rotation_degrees = Vector3(-18, 180, 0)
+current = true
+
+[node name="Light" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-45, -30, 0)
+light_energy = 1.2
