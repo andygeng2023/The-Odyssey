@@ -103,10 +103,17 @@ jobs:
           test -n "$pck_file"
           test -s "$pck_file"
 
+          js_file="$(find build/web -maxdepth 1 -type f -name '*.js' -print -quit)"
+          test -n "$js_file"
+          test -s "$js_file"
+
+          echo "Web export asset inventory:"
+          ls -lah build/web
+
           cat > build/web/.htaccess <<'EOF'
-          Options -MultiViews
           AddType application/wasm .wasm
           AddType application/octet-stream .pck
+          DirectoryIndex index.html
           EOF
 
           find build/web -maxdepth 1 -type f -printf '%f\n' | sort
