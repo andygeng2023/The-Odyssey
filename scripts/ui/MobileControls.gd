@@ -54,7 +54,7 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventScreenDrag:
         var drag := event as InputEventScreenDrag
         if drag.index == _move_touch:
-            var radius := min(size.x, size.y) * 0.13
+            var radius: float = min(size.x, size.y) * 0.13
             move_vector = (drag.position - _move_center).limit_length(radius) / radius
             queue_redraw()
         elif drag.index == _camera_touch:
@@ -74,7 +74,7 @@ func _draw() -> void:
     if _move_touch != -1:
         center = _move_center
     draw_circle(center, radius, Color(0.05, 0.08, 0.12, 0.28))
-    var knob := center + move_vector * radius * 0.58
+    var knob: Vector2 = center + move_vector * radius * 0.58
     draw_circle(knob, radius * 0.42, Color(0.9, 0.88, 0.75, 0.62))
 
     _buttons["jump"] = Rect2(size.x - 190, size.y - 150, 64, 64)
