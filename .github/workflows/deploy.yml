@@ -1,0 +1,51 @@
+name: Deploy The Odyssey
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: odyssey-deploy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Godot Web export
+        run: |
+          mkdir -p build/web
+          godot --headless --editor --quit
+          godot --headless --path . --export-release "Web" build/web/index.html
+      - name: Add deployment metadata
+        run: |
+          printf '%s\n' "commit=${GITHUB_SHA}" "ref=${GITHUB_REF_NAME}" "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" > build/web/deployment.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: odyssey-web-${{ github.sha }}
+          path: build/web
+  deploy-infinityfree:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: odyssey-web-${{ github.sha }}
+          path: build/web
+      - name: Deploy to InfinityFree
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.INFINITYFREE_FTP_SERVER }}
+          username: ${{ secrets.INFINITYFREE_FTP_USERNAME }}
+          password: ${{ secrets.INFINITYFREE_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: build/web/
+          server-dir: ${{ secrets.INFINITYFREE_FTP_SERVER_DIR }}
+          dangerous-clean-slate: false
