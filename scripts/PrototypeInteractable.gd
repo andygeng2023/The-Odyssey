@@ -5,9 +5,9 @@ extends Node3D
 var action: Callable
 
 func setup(label: String, callback: Callable) -> void:
-	interaction_name = label
-	action = callback
+    interaction_name = label
+    action = callback
 
 func interact(player: Node) -> void:
-	if action.is_valid():
-		action.call(player)
+    if action.is_valid():
+        action.call(self, player)
