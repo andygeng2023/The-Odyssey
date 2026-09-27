@@ -1,14 +1,17 @@
-[gd_scene load_steps=11 format=3]
-[ext_resource path="res://scripts/Main.gd" type="Script" id="1"]
+[gd_scene load_steps=10 format=3]
+
+[ext_resource path="res://scripts/bootstrap/GameBootstrap.gd" type="Script" id="1"]
 [ext_resource path="res://scripts/player/Odysseus.gd" type="Script" id="2"]
 [ext_resource path="res://scripts/core/Inventory.gd" type="Script" id="3"]
 [ext_resource path="res://scripts/core/TraversalSystem.gd" type="Script" id="4"]
 [ext_resource path="res://scripts/core/CraftingSystem.gd" type="Script" id="5"]
 [ext_resource path="res://scripts/core/DiscoverySystem.gd" type="Script" id="6"]
+[ext_resource path="res://scripts/world/WorldGenerator.gd" type="Script" id="7"]
+[ext_resource path="res://scripts/ui/GameHUD.gd" type="Script" id="8"]
+
 [sub_resource type="CapsuleShape3D" id="Capsule"]
 radius = 0.45
 height = 1.8
-
 [sub_resource type="BoxMesh" id="GroundMesh"]
 size = Vector3(60, 0.5, 60)
 [sub_resource type="StandardMaterial3D" id="GroundMaterial"]
@@ -18,23 +21,30 @@ size = Vector3(60, 0.5, 60)
 
 [node name="TheOdyssey" type="Node3D"]
 script = ExtResource("1")
+
 [node name="Systems" type="Node" parent="."]
 [node name="Crafting" type="Node" parent="Systems"]
 script = ExtResource("5")
 [node name="Discovery" type="Node" parent="Systems"]
 script = ExtResource("6")
-[node name="Odysseus" type="CharacterBody3D" parent="."]
+
+[node name="World" type="Node3D" parent="."]
+script = ExtResource("7")
+
+[node name="Player" type="CharacterBody3D" parent="."]
 script = ExtResource("2")
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Odysseus"]
+position = Vector3(0, 1.2, 5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("Capsule")
-[node name="Inventory" type="Node" parent="Odysseus"]
+[node name="Inventory" type="Node" parent="Player"]
 script = ExtResource("3")
-[node name="Traversal" type="Node" parent="Odysseus"]
+[node name="Traversal" type="Node" parent="Player"]
 script = ExtResource("4")
 
-[node name="Camera3D" type="Camera3D" parent="Odysseus"]
-position = Vector3(0, 4, 8)
-rotation_degrees = Vector3(-18, 0, 0)
+[node name="Camera3D" type="Camera3D" parent="Player"]
+position = Vector3(0, 6.5, 10.5)
+rotation_degrees = Vector3(-25, 0, 0)
 current = true
 
 [node name="Light" type="DirectionalLight3D" parent="."]
@@ -48,3 +58,7 @@ mesh = SubResource("GroundMesh")
 material_override = SubResource("GroundMaterial")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
 shape = SubResource("GroundShape")
+
+[node name="UI" type="Node" parent="."]
+[node name="GameHUD" type="CanvasLayer" parent="UI"]
+script = ExtResource("8")
