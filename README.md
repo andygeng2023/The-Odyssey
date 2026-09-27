@@ -1,4 +1,4 @@
-# The Odyssey — Engine Foundation
+# The Odyssey — Mobile Open-World Adventure
 
 Godot 4.x foundation for an emergent, physically-inspired open-world Odyssey.
 
@@ -11,12 +11,12 @@ Implemented:
 - Crafting, climbing, swimming/diving and weather foundations.
 - Discovery-gated fast travel.
 - Godot Web export.
-- GitHub Actions CI/build and InfinityFree FTPS deployment.
+- GitHub Actions CI/build and GitHub Pages Web deployment.
 - Supabase REST client foundation and RLS-protected persistent world-state schema.
 
 ## Automatic deployment
 
-.github/workflows/deploy.yml builds the Godot Web export on pull requests and deploys to InfinityFree on pushes to main.
+.github/workflows/deploy.yml builds the Godot Web export on pull requests and deploys the game to GitHub Pages on pushes to main.
 
 Required GitHub repository Actions secrets:
 - INFINITYFREE_FTP_SERVER
@@ -44,4 +44,4 @@ Use only the Supabase URL and publishable/anon key in the client. Never expose t
 
 Open the repository in Godot 4.x and run scenes/Main.tscn. For a browser build, use the Web export preset.
 
-Next: playable coastline sandbox, input/UI wiring, vessel controls, save/load authentication, world streaming, underwater traversal, combat/AI, and mythological realms.
+Current direction: mobile-first third-person open world with a systemic, physics-driven adventure loop. See docs/GAME_DESIGN.md for the full feature map. The current shore slice exposes the city, shrine, underwater cave, mythic gates, Calypso's island, wildlife, gathering, construction, survival foundations, climbing and swimming.
