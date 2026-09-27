@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource path="res://scripts/bootstrap/GameBootstrap.gd" type="Script" id="1"]
 [ext_resource path="res://scripts/player/Odysseus.gd" type="Script" id="2"]
@@ -48,15 +48,15 @@ sun_angle_max = 12.0
 sky_material = SubResource("SkyMaterial")
 [sub_resource type="Environment" id="Environment"]
 background_mode = 2
-background_energy_multiplier = 1.05
+background_energy_multiplier = 1.15
 fog_enabled = true
 fog_light_color = Color(0.74, 0.78, 0.72, 1)
 fog_light_energy = 0.65
-fog_density = 0.008
+fog_density = 0.005
 fog_sky_affect = 0.35
 ambient_light_source = 3
 ambient_light_color = Color(0.72, 0.79, 0.88, 1)
-ambient_light_energy = 0.95
+ambient_light_energy = 1.05
 tonemap_mode = 2
 reflected_light_source = 2
 sky = SubResource("Sky")
@@ -91,6 +91,21 @@ height = 0.78
 [sub_resource type="SphereMesh" id="ShoulderMesh"]
 radius = 0.15
 height = 0.30
+[sub_resource type="CylinderMesh" id="HelmetMesh"]
+top_radius = 0.25
+bottom_radius = 0.34
+height = 0.22
+radial_segments = 12
+[sub_resource type="BoxMesh" id="ShieldMesh"]
+size = Vector3(0.78, 0.95, 0.14)
+[sub_resource type="StandardMaterial3D" id="BronzeMaterial"]
+albedo_color = Color(0.46, 0.30, 0.12, 1)
+metallic = 0.72
+roughness = 0.28
+[sub_resource type="StandardMaterial3D" id="ShieldMaterial"]
+albedo_color = Color(0.12, 0.18, 0.20, 1)
+metallic = 0.35
+roughness = 0.42
 
 [node name="TheOdyssey" type="Node3D"]
 script = ExtResource("1")
@@ -151,6 +166,20 @@ material_override = SubResource("PlayerCloakMaterial")
 position = Vector3(0, 2.02, -0.01)
 mesh = SubResource("HairMesh")
 material_override = SubResource("PlayerHairMaterial")
+[node name="Helmet" type="MeshInstance3D" parent="Player"]
+position = Vector3(0, 2.18, 0)
+mesh = SubResource("HelmetMesh")
+material_override = SubResource("BronzeMaterial")
+[node name="Shield" type="MeshInstance3D" parent="Player"]
+position = Vector3(-0.62, 1.05, 0.10)
+rotation_degrees = Vector3(0, 0, 7)
+mesh = SubResource("ShieldMesh")
+material_override = SubResource("ShieldMaterial")
+[node name="ShieldBoss" type="MeshInstance3D" parent="Player"]
+position = Vector3(-0.62, 1.05, 0.18)
+mesh = SubResource("ShoulderMesh")
+scale = Vector3(0.75, 0.75, 0.5)
+material_override = SubResource("BronzeMaterial")
 [node name="Belt" type="MeshInstance3D" parent="Player"]
 position = Vector3(0, 0.72, 0)
 mesh = SubResource("BeltMesh")
@@ -181,12 +210,12 @@ script = ExtResource("5")
 script = ExtResource("3")
 target_path = NodePath("../Player")
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
-spring_length = 8.5
+spring_length = 5.8
 margin = 0.35
 collision_mask = 1
 [node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
 current = true
-fov = 62.0
+fov = 58.0
 near = 0.05
 far = 350.0
 
@@ -194,9 +223,9 @@ far = 350.0
 environment = SubResource("Environment")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-48, -28, 0)
-light_energy = 1.55
+light_energy = 1.75
 shadow_enabled = true
-directional_shadow_max_distance = 120.0
+directional_shadow_max_distance = 100.0
 
 
 [node name="Ground" type="StaticBody3D" parent="."]
