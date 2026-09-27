@@ -1,13 +1,13 @@
 class_name OdysseySurvivalDirector
 extends Node
 
-@onready var survival: OdysseySurvivalSystem = $Survival
-@onready var weather: OdysseyWeatherSystem = $Weather
-@onready var fire: OdysseyFireSystem = $Fire
-
 func _process(delta: float) -> void:
-    var player := get_parent().get_node_or_null("Player") as Odysseus
-    if player == null:
+    var root := get_parent()
+    var player := root.get_parent().get_node_or_null("Player") as Odysseus
+    var survival := root.get_node_or_null("Survival") as OdysseySurvivalSystem
+    var weather := root.get_node_or_null("Weather") as OdysseyWeatherSystem
+    var fire := root.get_node_or_null("Fire") as OdysseyFireSystem
+    if player == null or survival == null or weather == null or fire == null:
         return
     var near_fire := false
     for source in fire.burning.keys():
