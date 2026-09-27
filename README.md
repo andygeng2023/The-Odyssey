@@ -2,17 +2,46 @@
 
 Godot 4.x foundation for an emergent, physically-inspired open-world Odyssey.
 
-Implemented systems:
+Implemented:
 - Capability-based world objects and interactions.
+- Physics-aware grabbing, throwing and construction.
+- Resource harvesting and destruction.
+- Fire and rope systems.
 - Bulk-material inventory with limited equipment capacity.
-- Data-driven crafting for raft, bridge, ladder, campfire and storage.
-- Stamina-driven traversal foundation.
-- Weather and sea-state model.
-- Discovery-gated map and fast travel.
-- Basic Odysseus player actor.
+- Crafting, climbing, swimming/diving and weather foundations.
+- Discovery-gated fast travel.
+- Godot Web export.
+- GitHub Actions CI/build and InfinityFree FTPS deployment.
+- Supabase REST client foundation and RLS-protected persistent world-state schema.
 
-Run with Godot 4.x and open `scenes/Main.tscn`.
+## Automatic deployment
 
-This is the engine foundation, not the finished world. Next layers should add physics-aware manipulation, construction placement, climbing surfaces, swimming volumes, vessels, combat, wildlife/AI, save/load, world streaming, underwater traversal, mythological realms, and the Troy-to-shore opening sequence.
+.github/workflows/deploy.yml builds the Godot Web export on pull requests and deploys to InfinityFree on pushes to main.
 
-The architecture is deliberately capability-based: objects advertise what can be done to them, while systems validate and apply actions. This supports multiple physical solutions to the same problem rather than quest-specific interactions.
+Required GitHub repository Actions secrets:
+- INFINITYFREE_FTP_SERVER
+- INFINITYFREE_FTP_USERNAME
+- INFINITYFREE_FTP_PASSWORD
+- INFINITYFREE_FTP_SERVER_DIR
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+
+Do not commit FTP passwords, database passwords, Supabase service-role keys, or other privileged credentials.
+
+## InfinityFree
+
+Create the site in InfinityFree, copy the exact FTPS host, username, password and target directory from its FTP/account panel, and store them as the four INFINITYFREE_* repository secrets. Do not guess the server directory.
+
+After this branch is merged into main, every push to main will build the Web game and deploy it to the configured InfinityFree directory.
+
+## Supabase
+
+Run supabase/migrations/001_odyssey_world_state.sql in the Supabase SQL editor. It creates authenticated-player world-state storage and enables Row Level Security so players can only read/write their own row.
+
+Use only the Supabase URL and publishable/anon key in the client. Never expose the service-role key.
+
+## Local
+
+Open the repository in Godot 4.x and run scenes/Main.tscn. For a browser build, use the Web export preset.
+
+Next: playable coastline sandbox, input/UI wiring, vessel controls, save/load authentication, world streaming, underwater traversal, combat/AI, and mythological realms.
