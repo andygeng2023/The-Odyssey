@@ -57,7 +57,15 @@ jobs:
       - name: Validate Godot project
         run: godot --headless --path . --editor --quit
       - name: Run project smoke test
-        run: timeout 15s godot --headless --path . --quit-after 8
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 15s godot --headless --path . --quit-after 8 2>&1 | tee /tmp/odyssey-smoke.log
+          if grep -Eiq "SCRIPT ERROR|Parse Error|ERROR:.*shader|Failed to load script" /tmp/odyssey-smoke.log; then
+            echo "Runtime smoke test found a Godot error:"
+            grep -Ein "SCRIPT ERROR|Parse Error|ERROR:.*shader|Failed to load script" /tmp/odyssey-smoke.log
+            exit 1
+          fi
       - name: Build Godot Web export
         run: |
           set -euo pipefail
