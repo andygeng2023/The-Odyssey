@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=11 format=3]
 [ext_resource path="res://scripts/Main.gd" type="Script" id="1"]
 [ext_resource path="res://scripts/player/Odysseus.gd" type="Script" id="2"]
 [ext_resource path="res://scripts/core/Inventory.gd" type="Script" id="3"]
@@ -34,7 +34,7 @@ script = ExtResource("4")
 
 [node name="Camera3D" type="Camera3D" parent="Odysseus"]
 position = Vector3(0, 4, 8)
-rotation_degrees = Vector3(-18, 180, 0)
+rotation_degrees = Vector3(-18, 0, 0)
 current = true
 
 [node name="Light" type="DirectionalLight3D" parent="."]
