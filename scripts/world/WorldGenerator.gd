@@ -48,32 +48,45 @@ func _make_water() -> void:
     add_child(water)
 
 func _make_terrain() -> void:
-    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.72, 0.58, 0.38, 1), false)
-    _make_box("HillWest", Vector3(-22, 1.4, 10), Vector3(22, 2.8, 15), Color(0.25, 0.34, 0.19, 1), true)
-    _make_box("HillEast", Vector3(23, 1.0, 13), Vector3(18, 2.0, 18), Color(0.29, 0.37, 0.21, 1), true)
-    _make_box("Cliff", Vector3(0, 2.3, 28), Vector3(70, 4.6, 8), Color(0.30, 0.32, 0.25, 1), true)
+    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.78, 0.66, 0.47, 1), false)
+    _make_landform("HillWest", Vector3(-22, 1.7, 10), Vector3(18, 3.4, 14), Color(0.24, 0.38, 0.20, 1))
+    _make_landform("HillEast", Vector3(23, 1.25, 13), Vector3(16, 2.5, 17), Color(0.29, 0.43, 0.22, 1))
+    _make_landform("Cliff", Vector3(0, 2.0, 28), Vector3(72, 4.0, 8), Color(0.34, 0.34, 0.29, 1))
+    _make_box("CliffFace", Vector3(0, 1.0, 24), Vector3(72, 2.0, 1.2), Color(0.25, 0.27, 0.25, 1), true)
+    for x in [-30.0, -18.0, -6.0, 7.0, 19.0, 31.0]:
+        _make_landform("RockOutcrop", Vector3(x, 0.7, 19.0 + sin(x) * 2.0), Vector3(3.0, 1.4, 2.2), Color(0.38, 0.38, 0.34, 1))
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
     var trunk := MeshInstance3D.new()
     var trunk_mesh := CylinderMesh.new()
-    trunk_mesh.height = 3.0
-    trunk_mesh.top_radius = 0.22
-    trunk_mesh.bottom_radius = 0.42
+    trunk_mesh.height = 3.4
+    trunk_mesh.top_radius = 0.18
+    trunk_mesh.bottom_radius = 0.38
     trunk.mesh = trunk_mesh
-    trunk.position.y = 1.5
-    trunk.material_override = _material(Color(0.30, 0.17, 0.07, 1))
+    trunk.position.y = 1.7
+    trunk.material_override = _material(Color(0.27, 0.13, 0.055, 1))
     root.add_child(trunk)
-    for data in [[Vector3(0,3.0,0),1.35],[Vector3(0.55,2.8,0.2),0.9],[Vector3(-0.5,2.65,-0.15),0.85]]:
+    for data in [[Vector3(0,3.1,0),1.45,1.55],[Vector3(0.52,2.65,0.18),0.95,1.25],[Vector3(-0.55,2.45,-0.2),0.82,1.05]]:
         var crown := MeshInstance3D.new()
         var crown_mesh := SphereMesh.new()
         crown_mesh.radius = data[1]
-        crown_mesh.height = data[1] * 1.8
+        crown_mesh.height = data[2]
         crown.mesh = crown_mesh
         crown.position = data[0]
-        crown.material_override = _material(Color(0.10, 0.31, 0.15, 1))
+        crown.material_override = _material(Color(0.08, 0.28, 0.12, 1))
         root.add_child(crown)
-    _add_collision(root, Vector3(0, 1.5, 0), Vector3(0.8, 3.0, 0.8))
+    var branch := MeshInstance3D.new()
+    var branch_mesh := CylinderMesh.new()
+    branch_mesh.height = 1.6
+    branch_mesh.top_radius = 0.07
+    branch_mesh.bottom_radius = 0.14
+    branch.mesh = branch_mesh
+    branch.rotation_degrees = Vector3(0, 0, -55)
+    branch.position = Vector3(0.35, 2.15, 0)
+    branch.material_override = _material(Color(0.25, 0.12, 0.05, 1))
+    root.add_child(branch)
+    _add_collision(root, Vector3(0, 1.7, 0), Vector3(0.8, 3.4, 0.8))
 
 func _make_rock(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Stone", "Gather stone", _harvest_rock)
@@ -175,6 +188,20 @@ func _make_interactable(pos: Vector3, node_name: String, action_name: String, ca
     node.setup(action_name, callback)
     add_child(node)
     return node
+
+func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -> void:
+    var root := Node3D.new()
+    root.name = label
+    root.position = pos
+    add_child(root)
+    var mesh := MeshInstance3D.new()
+    var sphere := SphereMesh.new()
+    sphere.radius = 1.0
+    sphere.height = 2.0
+    mesh.mesh = sphere
+    mesh.scale = scale
+    mesh.material_override = _material(color)
+    root.add_child(mesh)
 
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: bool) -> Node3D:
     var body: Node3D = StaticBody3D.new() if solid else Node3D.new()
