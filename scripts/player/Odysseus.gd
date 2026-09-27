@@ -3,7 +3,7 @@ extends CharacterBody3D
 
 @onready var inventory: OdysseyInventory = $Inventory
 @onready var traversal: OdysseyTraversalSystem = $Traversal
-@onready var camera: OdysseyAdventureCamera = $CameraRig
+@onready var camera: OdysseyAdventureCamera = $"../CameraRig"
 
 var climbing := false
 var swimming := false
@@ -20,18 +20,17 @@ func _ready() -> void:
         mobile_controls.action_pressed.connect(_on_mobile_action)
 
 func _physics_process(delta: float) -> void:
-    var direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+    var input_direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
     if mobile_controls and mobile_controls.move_vector.length_squared() > 0.01:
-        direction = mobile_controls.move_vector
+        input_direction = mobile_controls.move_vector
+
     var forward := -camera.global_transform.basis.z
     forward.y = 0.0
     forward = forward.normalized()
     var right := camera.global_transform.basis.x
     right.y = 0.0
     right = right.normalized()
-    var world_direction := right * direction.x + forward * direction.y
-    if world_direction.length_squared() > 0.0:
-        world_direction = world_direction.normalized()
+    var world_direction := (right * input_direction.x + forward * input_direction.y).normalized() if input_direction.length_squared() > 0.0 else Vector3.ZERO
 
     swimming = global_position.z < -17.0
     climbing = is_on_wall() and not is_on_floor() and not swimming and world_direction.length_squared() > 0.05
@@ -58,8 +57,8 @@ func _physics_process(delta: float) -> void:
     if traversal.stamina <= 0.0:
         climbing = false
 
-    if world_direction.length_squared() > 0.0:
-        rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 9.0)
+    if world_direction.length_squared() > 0.001:
+        rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
 
 func _on_mobile_action(action: String) -> void:
     if action == "jump":
@@ -67,16 +66,16 @@ func _on_mobile_action(action: String) -> void:
             velocity.y = 4.0
         elif is_on_floor():
             velocity.y = jump_velocity
-    elif action == "interact" or action == "action":
+    else:
         try_interact()
 
 func try_interact() -> bool:
     var nearest: OdysseyPrototypeInteractable = null
-    var nearest_distance := 3.2
+    var nearest_distance: float = 3.2
     for node in get_tree().get_nodes_in_group("odyssey_interactable"):
         if not is_instance_valid(node):
             continue
-        var distance := global_position.distance_to(node.global_position)
+        var distance: float = global_position.distance_to(node.global_position)
         if distance <= nearest_distance:
             nearest = node
             nearest_distance = distance
