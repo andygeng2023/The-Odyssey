@@ -5,52 +5,95 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: odyssey-deploy-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.5.1"
+  GODOT_RELEASE: "4.5.1-stable"
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.5.1
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install CI system dependencies
+
+      - name: Install CI dependencies
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends fontconfig ca-certificates curl unzip
-      - name: Install Godot Web export templates
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends             fontconfig             ca-certificates             curl             unzip
+
+      - name: Install Godot editor
+        shell: bash
         run: |
-          mkdir -p /github/home/.local/share/godot/export_templates/4.5.1.stable
-          curl -fsSL -o /tmp/Godot_v4.5.1-stable_export_templates.tpz \
-            https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
-          unzip -q -o /tmp/Godot_v4.5.1-stable_export_templates.tpz \
-            -d /github/home/.local/share/godot/export_templates
-          test -f /github/home/.local/share/godot/export_templates/4.5.1.stable/web_nothreads_release.zip
-          test -f /github/home/.local/share/godot/export_templates/4.5.1.stable/web_nothreads_debug.zip
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL             -o /tmp/godot.zip             "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q -o /tmp/godot.zip -d /tmp/godot
+          install -m 0755 /tmp/godot/Godot_v${GODOT_RELEASE}_linux.x86_64 "$HOME/.local/bin/godot"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          godot --version
+
+      - name: Install Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          templates_root="$HOME/.local/share/godot/export_templates"
+          templates_dir="$templates_root/${GODOT_VERSION}.stable"
+          mkdir -p "$templates_dir"
+          curl -fsSL             -o /tmp/godot-templates.tpz             "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q -o /tmp/godot-templates.tpz -d "$templates_root"
+          test -f "$templates_dir/web_nothreads_release.zip"
+          test -f "$templates_dir/web_nothreads_debug.zip"
+          echo "Godot Web export templates installed in $templates_dir"
+
+      - name: Validate Godot project
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --editor --quit
+
       - name: Build Godot Web export
+        shell: bash
         run: |
+          set -euo pipefail
+          rm -rf build/web
           mkdir -p build/web
-          godot --headless --editor --quit
           godot --headless --path . --export-release "Web" build/web/index.html
-      - name: Add deployment metadata
+
+      - name: Verify Web export
+        shell: bash
         run: |
-          printf '%s\n' "commit=${GITHUB_SHA}" "ref=${GITHUB_REF_NAME}" "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" > build/web/deployment.txt
+          set -euo pipefail
+          test -s build/web/index.html
+          find build/web -maxdepth 1 -type f -printf '%f\n' | sort
+          printf '%s\n'             "commit=${GITHUB_SHA}"             "ref=${GITHUB_REF_NAME}"             "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"             > build/web/deployment.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: odyssey-web-${{ github.sha }}
           path: build/web
+
   deploy-infinityfree:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: odyssey-web-${{ github.sha }}
           path: build/web
+
+      - name: Verify downloaded Web export
+        run: test -s build/web/index.html
+
       - name: Deploy to InfinityFree
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
