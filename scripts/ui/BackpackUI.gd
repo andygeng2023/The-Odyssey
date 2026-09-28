@@ -209,7 +209,7 @@ func _refresh() -> void:
     queue_redraw()
 
 func _make_item_row(entry: Dictionary) -> Control:
-    var row := PanelContainer.new()
+    var row := Panel.new()
     var style := StyleBoxFlat.new()
     style.bg_color = Color(0.075, 0.075, 0.068, 0.94)
     style.border_color = Color(0.23, 0.22, 0.19, 1)
