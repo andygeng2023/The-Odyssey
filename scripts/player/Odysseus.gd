@@ -17,6 +17,7 @@ var sprint_speed := 6.4
 var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
+var mobile_jump_requested := false
 var _recovering := false
 var _visual_time := 0.0
 var _visual_base_y := 0.0
@@ -65,8 +66,9 @@ func _physics_process(delta: float) -> void:
         velocity.y = 2.6
     elif not is_on_floor():
         velocity.y -= gravity * delta
-    elif Input.is_action_just_pressed("jump"):
+    elif Input.is_action_just_pressed("jump") or mobile_jump_requested:
         velocity.y = jump_velocity
+        mobile_jump_requested = false
     else:
         velocity.y = 0.0
 
@@ -132,7 +134,7 @@ func handle_mobile_action(action: String) -> void:
             if swimming:
                 velocity.y = 4.0
             elif is_on_floor():
-                velocity.y = jump_velocity
+                mobile_jump_requested = true
         "sprint":
             mobile_sprint = not mobile_sprint
 
