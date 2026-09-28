@@ -4,6 +4,6 @@
 namespace odyssey {
 class Renderer {
 public:
- void draw(const PlayerBody& p,float yaw,float pitch) const;
+ void draw(const PlayerBody& p,float yaw,float pitch,const Vec3& cameraPosition) const;
 };
 }
