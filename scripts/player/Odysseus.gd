@@ -22,6 +22,7 @@ var _visual_time := 0.0
 var _visual_base_y := 0.0
 
 func _ready() -> void:
+    add_to_group("odyssey_player")
     floor_snap_length = 0.55
     _visual_base_y = $Body.position.y
     floor_stop_on_slope = true
@@ -125,7 +126,7 @@ func _recover_if_out_of_bounds() -> void:
         if hud:
             hud.show_message("You reached the edge of the world. Returned to solid ground.", 2.5)
 
-func _on_mobile_action(action: String) -> void:
+func handle_mobile_action(action: String) -> void:
     match action:
         "jump":
             if swimming:
@@ -134,6 +135,9 @@ func _on_mobile_action(action: String) -> void:
                 velocity.y = jump_velocity
         "sprint":
             mobile_sprint = not mobile_sprint
+
+func _on_mobile_action(action: String) -> void:
+    handle_mobile_action(action)
 
 func try_interact() -> bool:
     var nearest: OdysseyPrototypeInteractable = null
