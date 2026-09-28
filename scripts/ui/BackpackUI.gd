@@ -35,7 +35,8 @@ func _ready() -> void:
     set_process_input(true)
     _mobile_controls = get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if _mobile_controls:
-        _mobile_controls.backpack_pressed.connect(toggle)
+        if not _mobile_controls.backpack_pressed.is_connected(toggle):
+            _mobile_controls.backpack_pressed.connect(toggle)
     _build_ui()
     _build_3d_preview()
     queue_redraw()
