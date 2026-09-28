@@ -20,7 +20,6 @@ pointing/emulate_touch_from_mouse=true
 pointing/emulate_mouse_from_touch=true
 
 [input]
-
 map={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":77,"unicode":109)]
@@ -30,6 +29,7 @@ move_right={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":68)
 move_forward={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":87),Object(InputEventKey,"physical_keycode":4194320)]}
 move_back={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":83),Object(InputEventKey,"physical_keycode":4194322)]}
 interact={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":69)]}
+action={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":70)]}
 sprint={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194325)]}
 jump={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":32)]}
 backpack={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":66)]}
