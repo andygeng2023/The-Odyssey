@@ -1,6 +1,26 @@
 class_name OdysseyMapUI
 extends CanvasLayer
 
+class MapArt extends Control:
+    func _draw() -> void:
+        draw_rect(Rect2(Vector2.ZERO, size), Color(0.72,0.68,0.53,1))
+        for y in range(0, int(size.y), 36):
+            draw_line(Vector2(0,y), Vector2(size.x,y), Color(0.57,0.60,0.49,0.18), 1)
+        for x in range(0, int(size.x), 42):
+            draw_line(Vector2(x,0), Vector2(x,size.y), Color(0.57,0.60,0.49,0.14), 1)
+        draw_rect(Rect2(Vector2.ZERO, size), Color(0.25,0.47,0.50,0.24))
+        var coast := PackedVector2Array([Vector2(80,330),Vector2(100,260),Vector2(145,210),Vector2(215,170),Vector2(285,145),Vector2(360,170),Vector2(410,225),Vector2(470,245),Vector2(500,330),Vector2(455,405),Vector2(350,420),Vector2(250,390),Vector2(180,405),Vector2(105,380)])
+        draw_colored_polygon(coast, Color(0.49,0.57,0.36,0.92))
+        draw_polyline(coast, Color(0.30,0.35,0.24,0.95), 4)
+        for p in [Vector2(180,280),Vector2(235,235),Vector2(300,260),Vector2(355,220),Vector2(400,290)]:
+            draw_circle(p, 34, Color(0.40,0.49,0.30,0.42))
+        for p in [Vector2(120,300),Vector2(445,330),Vector2(250,355)]:
+            draw_circle(p, 6, Color(0.72,0.53,0.28,0.9))
+            draw_circle(p, 2.5, Color(0.96,0.86,0.58,1))
+        draw_string(ThemeDB.fallback_font, Vector2(24,38), "AEGEAN COAST", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.28,0.30,0.25,0.82))
+        draw_string(ThemeDB.fallback_font, Vector2(375,58), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.24,0.27,0.24,0.9))
+        draw_line(Vector2(390,82),Vector2(390,45),Color(0.24,0.27,0.24,0.8),2)
+
 var discovery: OdysseyDiscoverySystem
 var player: Odysseus
 var panel: Panel
@@ -52,11 +72,11 @@ func _build() -> void:
     subtitle.add_theme_color_override("font_color", Color(0.62,0.69,0.63,1))
     panel.add_child(subtitle)
 
-    map_art = Control.new()
+    map_art = MapArt.new()
     map_art.position = Vector2(26, 92)
     map_art.size = Vector2(548, 470)
     map_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    map_art.set_script(_map_art_script())
+
     panel.add_child(map_art)
 
     var right := Panel.new()
@@ -92,33 +112,6 @@ func _build() -> void:
     close.pressed.connect(close_map)
     _style_button(close, false)
     panel.add_child(close)
-
-func _map_art_script() -> Script:
-    var script := GDScript.new()
-    script.source_code = """
-extends Control
-func _draw():
-    draw_rect(Rect2(Vector2.ZERO, size), Color(0.72,0.68,0.53,1))
-    for y in range(0, int(size.y), 36):
-        draw_line(Vector2(0,y), Vector2(size.x,y), Color(0.57,0.60,0.49,0.18), 1)
-    for x in range(0, int(size.x), 42):
-        draw_line(Vector2(x,0), Vector2(x,size.y), Color(0.57,0.60,0.49,0.14), 1)
-    var sea := PackedVector2Array([Vector2(0,0),Vector2(size.x,0),Vector2(size.x,size.y),Vector2(0,size.y)])
-    draw_colored_polygon(sea, Color(0.25,0.47,0.50,0.32))
-    var coast := PackedVector2Array([Vector2(80,330),Vector2(100,260),Vector2(145,210),Vector2(215,170),Vector2(285,145),Vector2(360,170),Vector2(410,225),Vector2(470,245),Vector2(500,330),Vector2(455,405),Vector2(350,420),Vector2(250,390),Vector2(180,405),Vector2(105,380)])
-    draw_colored_polygon(coast, Color(0.49,0.57,0.36,0.92))
-    draw_polyline(coast, Color(0.30,0.35,0.24,0.95), 4)
-    var hills := [Vector2(180,280),Vector2(235,235),Vector2(300,260),Vector2(355,220),Vector2(400,290)]
-    for p in hills:
-        draw_circle(p, 34, Color(0.40,0.49,0.30,0.42))
-    for p in [Vector2(120,300),Vector2(445,330),Vector2(250,355)]:
-        draw_circle(p, 6, Color(0.72,0.53,0.28,0.9))
-        draw_circle(p, 2.5, Color(0.96,0.86,0.58,1))
-    draw_string(ThemeDB.fallback_font, Vector2(24,38), "AEGEAN COAST", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.28,0.30,0.25,0.82))
-    draw_string(ThemeDB.fallback_font, Vector2(375,58), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.24,0.27,0.24,0.9))
-    draw_line(Vector2(390,82),Vector2(390,45),Color(0.24,0.27,0.24,0.8),2)
-"""
-    return script
 
 func _style_button(button: Button, selected: bool) -> void:
     var normal := StyleBoxFlat.new()
