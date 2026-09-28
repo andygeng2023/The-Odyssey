@@ -20,15 +20,68 @@ var _move_touch: int = -1
 var _camera_touch: int = -1
 var _camera_last: Vector2 = Vector2.ZERO
 var _mouse_camera_active: bool = false
+var _buttons: Dictionary = {}
 
 func _ready() -> void:
     set_process_input(true)
-    mouse_filter = Control.MOUSE_FILTER_IGNORE
+    mouse_filter = Control.MOUSE_FILTER_PASS
+    _create_action_buttons()
     queue_redraw()
 
 func _notification(what: int) -> void:
     if what == NOTIFICATION_RESIZED:
         queue_redraw()
+
+func _create_action_buttons() -> void:
+    for id in ["jump", "interact", "sprint", "backpack"]:
+        var button := Button.new()
+        button.name = id.capitalize() + "Button"
+        button.focus_mode = Control.FOCUS_NONE
+        button.mouse_filter = Control.MOUSE_FILTER_STOP
+        button.flat = false
+        button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
+        button.pressed.connect(_on_gui_button_pressed.bind(id))
+        add_child(button)
+        _buttons[id] = button
+    _style_action_buttons()
+
+func _style_action_buttons() -> void:
+    for id: String in _buttons.keys():
+        var button: Button = _buttons[id] as Button
+        var normal := StyleBoxFlat.new()
+        normal.bg_color = Color(0.025, 0.04, 0.07, 0.86)
+        normal.border_color = Color(0.95, 0.88, 0.68, 0.86)
+        normal.set_border_width_all(3)
+        normal.set_corner_radius_all(44)
+        var hover := normal.duplicate() as StyleBoxFlat
+        hover.bg_color = Color(0.12, 0.14, 0.18, 0.94)
+        var pressed := hover.duplicate() as StyleBoxFlat
+        pressed.bg_color = Color(0.24, 0.20, 0.12, 0.96)
+        button.add_theme_stylebox_override("normal", normal)
+        button.add_theme_stylebox_override("hover", hover)
+        button.add_theme_stylebox_override("pressed", pressed)
+        button.add_theme_stylebox_override("focus", hover)
+        button.add_theme_color_override("font_color", Color(1, 0.98, 0.90, 0.96))
+        button.add_theme_color_override("font_hover_color", Color(1, 0.98, 0.90, 1))
+        button.add_theme_color_override("font_pressed_color", Color(1, 0.98, 0.90, 1))
+
+func _process(_delta: float) -> void:
+    _layout_buttons()
+
+func _layout_buttons() -> void:
+    if _buttons.is_empty():
+        return
+    var margin: float = 30.0
+    var bottom: float = size.y - margin
+    var right: float = size.x - margin
+    var rects := _button_rects()
+    for id: String in _buttons.keys():
+        var button: Button = _buttons[id] as Button
+        var rect: Rect2 = rects[id] as Rect2
+        button.position = rect.position
+        button.size = rect.size
+        button.text = "BAG" if id == "backpack" else id.to_upper()
+        button.tooltip_text = id.capitalize()
 
 func _joystick_center() -> Vector2:
     return Vector2(maxf(118.0, size.x * 0.15), size.y - maxf(122.0, size.y * 0.17))
@@ -55,6 +108,9 @@ func _button_at(point: Vector2) -> String:
 func _is_camera_zone(point: Vector2) -> bool:
     return point.x >= size.x * CAMERA_START_X and _button_at(point) == ""
 
+func _on_gui_button_pressed(button: String) -> void:
+    _emit_button(button)
+
 func _emit_button(button: String) -> void:
     if button == "interact":
         interact_pressed.emit()
@@ -67,10 +123,8 @@ func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var touch: InputEventScreenTouch = event as InputEventScreenTouch
         if touch.pressed:
-            var button: String = _button_at(touch.position)
-            if button != "":
-                _emit_button(button)
-                get_viewport().set_input_as_handled()
+            # Real Button children own button taps. Only the joystick/camera are handled here.
+            if _button_at(touch.position) != "":
                 return
             var joystick_center: Vector2 = _joystick_center()
             var joystick_radius: float = maxf(74.0, minf(size.x, size.y) * 0.24)
@@ -112,10 +166,8 @@ func _input(event: InputEvent) -> void:
         var mouse_button: InputEventMouseButton = event as InputEventMouseButton
         if mouse_button.button_index == MOUSE_BUTTON_LEFT:
             if mouse_button.pressed:
-                var button: String = _button_at(mouse_button.position)
-                if button != "":
-                    _emit_button(button)
-                    get_viewport().set_input_as_handled()
+                if _button_at(mouse_button.position) != "":
+                    # Let the real Button child receive the click.
                     return
                 if _is_camera_zone(mouse_button.position):
                     _mouse_camera_active = true
@@ -136,13 +188,3 @@ func _draw() -> void:
     draw_circle(center, radius, Color(0.025, 0.04, 0.07, 0.48))
     draw_arc(center, radius, 0.0, TAU, 64, Color(0.95, 0.88, 0.68, 0.78), 3.0)
     draw_circle(knob, radius * 0.34, Color(0.94, 0.88, 0.68, 0.84))
-    var rects: Dictionary = _button_rects()
-    for id: String in rects.keys():
-        var rect: Rect2 = rects[id] as Rect2
-        var c: Vector2 = rect.get_center()
-        var r: float = rect.size.x * 0.46
-        draw_circle(c, r, Color(0.025, 0.04, 0.07, 0.68))
-        draw_arc(c, r, 0.0, TAU, 56, Color(0.95, 0.88, 0.68, 0.82), 3.0)
-        var label_text: String = "BAG" if id == "backpack" else id.to_upper()
-        var label_width: float = 60.0 if id == "backpack" else 44.0
-        draw_string(ThemeDB.fallback_font, c + Vector2(-label_width * 0.5, 6.0), label_text, HORIZONTAL_ALIGNMENT_CENTER, label_width, 12, Color(1, 0.98, 0.90, 0.96))

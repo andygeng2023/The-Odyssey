@@ -212,6 +212,15 @@ func _make_wildlife(pos: Vector3, species: String) -> void:
     body.material_override = _material(Color(0.48,0.31,0.16,1))
     body.position.y = 0.65
     animal.add_child(body)
+    var animal_collision := CollisionShape3D.new()
+    var animal_shape := CapsuleShape3D.new()
+    animal_shape.radius = 0.35
+    animal_shape.height = 0.9
+    animal_collision.shape = animal_shape
+    animal_collision.position = Vector3(0, 0.65, 0)
+    var animal_body := StaticBody3D.new()
+    animal.add_child(animal_body)
+    animal_body.add_child(animal_collision)
     _label(animal, species.to_upper(), Vector3(0,1.8,0))
 
 func _make_interactable(pos: Vector3, node_name: String, action_name: String, callback: Callable) -> OdysseyPrototypeInteractable:
@@ -237,6 +246,16 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     mesh.material_override = _material(color)
     root.add_child(mesh)
 
+    # Match the visible terrain with a scaled sphere collider so hills and outcrops are physical.
+    var body := StaticBody3D.new()
+    root.add_child(body)
+    var shape := CollisionShape3D.new()
+    var collision := SphereShape3D.new()
+    collision.radius = 1.0
+    shape.shape = collision
+    shape.scale = scale
+    body.add_child(shape)
+
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: bool) -> Node3D:
     var body: Node3D = StaticBody3D.new() if solid else Node3D.new()
     body.name = label
@@ -252,11 +271,16 @@ func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: 
     return body
 
 func _make_box_child(parent: Node3D, label: String, pos: Vector3, size: Vector3, color: Color) -> void:
-    var node := Node3D.new()
-    node.name = label
-    node.position = pos
-    parent.add_child(node)
-    _make_box_mesh(node, size, color)
+    var body := StaticBody3D.new()
+    body.name = label
+    body.position = pos
+    parent.add_child(body)
+    _make_box_mesh(body, size, color)
+    var shape := CollisionShape3D.new()
+    var collision := BoxShape3D.new()
+    collision.size = size
+    shape.shape = collision
+    body.add_child(shape)
 
 func _make_box_mesh(parent: Node3D, size: Vector3, color: Color) -> void:
     var mesh := MeshInstance3D.new()
@@ -267,26 +291,42 @@ func _make_box_mesh(parent: Node3D, size: Vector3, color: Color) -> void:
     parent.add_child(mesh)
 
 func _make_cylinder_child(parent: Node3D, pos: Vector3, radius: float, height: float, color: Color) -> void:
+    var body := StaticBody3D.new()
+    body.position = pos
+    parent.add_child(body)
     var mesh := MeshInstance3D.new()
     var cylinder := CylinderMesh.new()
     cylinder.top_radius = radius
     cylinder.bottom_radius = radius * 1.15
     cylinder.height = height
     mesh.mesh = cylinder
-    mesh.position = pos
     mesh.material_override = _material(color)
-    parent.add_child(mesh)
+    body.add_child(mesh)
+    var shape := CollisionShape3D.new()
+    var collision := CylinderShape3D.new()
+    collision.radius = radius * 1.15
+    collision.height = height
+    shape.shape = collision
+    body.add_child(shape)
 
 func _make_tree_child(parent: Node3D, pos: Vector3) -> void:
+    var body := StaticBody3D.new()
+    body.position = pos + Vector3(0, 1.25, 0)
+    parent.add_child(body)
     var trunk := MeshInstance3D.new()
     var mesh := CylinderMesh.new()
     mesh.height = 2.5
     mesh.top_radius = 0.22
     mesh.bottom_radius = 0.38
     trunk.mesh = mesh
-    trunk.position = pos + Vector3(0,1.25,0)
     trunk.material_override = _material(Color(0.30,0.17,0.07,1))
-    parent.add_child(trunk)
+    body.add_child(trunk)
+    var shape := CollisionShape3D.new()
+    var collision := CylinderShape3D.new()
+    collision.radius = 0.38
+    collision.height = 2.5
+    shape.shape = collision
+    body.add_child(shape)
     var crown := MeshInstance3D.new()
     var sphere := SphereMesh.new()
     sphere.radius = 1.15
