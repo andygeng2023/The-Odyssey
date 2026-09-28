@@ -14,6 +14,10 @@ var hint_label: Label
 var close_button: Button
 var _active_tab := "Foodstuff"
 var _mobile_controls: OdysseyMobileControls
+var preview_container: SubViewportContainer
+var preview_viewport: SubViewport
+var preview_camera: Camera3D
+var preview_root: Node3D
 
 const TAB_DEFINITIONS := [
     ["Foodstuff", "FOOD"],
@@ -29,10 +33,11 @@ func _ready() -> void:
     mouse_filter = Control.MOUSE_FILTER_STOP
     visible = false
     set_process_input(true)
-    _mobile_controls = get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
+    _mobile_controls = get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if _mobile_controls:
         _mobile_controls.backpack_pressed.connect(toggle)
     _build_ui()
+    _build_3d_preview()
     queue_redraw()
 
 func bind_inventory(value: OdysseyInventory) -> void:
@@ -65,7 +70,7 @@ func _build_ui() -> void:
         button.text = definition[1]
         button.focus_mode = Control.FOCUS_NONE
         button.add_theme_font_size_override("font_size", 13)
-        button.pressed.connect(_select_tab.bind(definition[0]))
+        button.button_down.connect(_select_tab.bind(definition[0]))
         add_child(button)
         tabs.append(button)
 
@@ -76,6 +81,7 @@ func _build_ui() -> void:
 func _process(_delta: float) -> void:
     if visible:
         _layout()
+        _sync_3d_preview()
 
 func _layout() -> void:
     var s := size
@@ -100,6 +106,12 @@ func _layout() -> void:
         tabs[i].size = Vector2(tab_width - 5.0, TAB_HEIGHT)
     item_list.position = Vector2(content_left, content_top)
     item_list.size = Vector2(content_width, content_height)
+    if preview_container:
+        var preview_rect := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
+        preview_container.position = preview_rect.position
+        preview_container.size = preview_rect.size
+        preview_viewport.size = Vector2i(maxi(1, int(preview_rect.size.x)), maxi(1, int(preview_rect.size.y)))
+        _position_preview_camera()
     for child in item_list.get_children():
         if child is Control:
             child.custom_minimum_size = Vector2(content_width, ROW_HEIGHT)
@@ -118,7 +130,6 @@ func _draw() -> void:
     var preview := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
     _draw_panel(preview, Color(0.025, 0.034, 0.043, 1), Color(0.36, 0.31, 0.22, 1), 1.0, 14.0)
     draw_string(ThemeDB.fallback_font, preview.position + Vector2(20.0, 34.0), "EQUIPMENT", HORIZONTAL_ALIGNMENT_LEFT, 220.0, 17, Color(0.88, 0.80, 0.63, 1))
-    _draw_character(preview)
 
     var right := Rect2(left + width * PREVIEW_RATIO + 10.0, top + 88.0, width * (1.0 - PREVIEW_RATIO) - 32.0, height - 138.0)
     _draw_panel(right, Color(0.035, 0.037, 0.038, 0.96), Color(0.25, 0.25, 0.23, 1), 1.0, 14.0)
@@ -131,32 +142,88 @@ func _draw_panel(rect: Rect2, fill: Color, border: Color, border_width: float, r
     style.set_corner_radius_all(int(radius))
     draw_style_box(style, rect)
 
-func _draw_character(preview: Rect2) -> void:
-    var center := preview.position + Vector2(preview.size.x * 0.5, preview.size.y * 0.54)
-    var scale := minf(preview.size.x / 260.0, preview.size.y / 430.0)
-    draw_circle(center + Vector2(0, -118.0) * scale, 34.0 * scale, Color(0.70, 0.47, 0.34, 1))
-    draw_circle(center + Vector2(0, -132.0) * scale, 35.0 * scale, Color(0.08, 0.055, 0.035, 1))
-    draw_colored_polygon(PackedVector2Array([
-        center + Vector2(-38, -92) * scale,
-        center + Vector2(38, -92) * scale,
-        center + Vector2(50, 35) * scale,
-        center + Vector2(-50, 35) * scale
-    ]), Color(0.12, 0.22, 0.30, 1))
-    draw_colored_polygon(PackedVector2Array([
-        center + Vector2(-50, -82) * scale,
-        center + Vector2(-8, -58) * scale,
-        center + Vector2(-28, 30) * scale,
-        center + Vector2(-58, 12) * scale
-    ]), Color(0.38, 0.16, 0.10, 1))
-    draw_line(center + Vector2(-52, -58) * scale, center + Vector2(-72, 18) * scale, Color(0.72, 0.48, 0.34, 1), 13.0 * scale, true)
-    draw_line(center + Vector2(52, -58) * scale, center + Vector2(72, 18) * scale, Color(0.72, 0.48, 0.34, 1), 13.0 * scale, true)
-    draw_line(center + Vector2(-22, 30) * scale, center + Vector2(-26, 118) * scale, Color(0.72, 0.48, 0.34, 1), 15.0 * scale, true)
-    draw_line(center + Vector2(22, 30) * scale, center + Vector2(26, 118) * scale, Color(0.72, 0.48, 0.34, 1), 15.0 * scale, true)
-    draw_line(center + Vector2(-38, 122) * scale, center + Vector2(-10, 122) * scale, Color(0.38, 0.16, 0.10, 1), 10.0 * scale, true)
-    draw_line(center + Vector2(10, 122) * scale, center + Vector2(38, 122) * scale, Color(0.38, 0.16, 0.10, 1), 10.0 * scale, true)
-    draw_arc(center + Vector2(0, -128) * scale, 39.0 * scale, PI, TAU, 24, Color(0.46, 0.30, 0.12, 1), 7.0 * scale)
-    draw_arc(center + Vector2(-53, -25) * scale, 34.0 * scale, -PI * 0.8, PI * 0.8, 24, Color(0.46, 0.30, 0.12, 1), 6.0 * scale)
-    draw_string(ThemeDB.fallback_font, center + Vector2(-78, 165) * scale, "ODYSSEUS", HORIZONTAL_ALIGNMENT_LEFT, 156.0, int(15.0 * scale), Color(0.85, 0.80, 0.69, 1))
+func _build_3d_preview() -> void:
+    preview_container = SubViewportContainer.new()
+    preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    preview_container.stretch = true
+    add_child(preview_container)
+
+    preview_viewport = SubViewport.new()
+    preview_viewport.transparent_bg = false
+    preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+    preview_viewport.handle_input_locally = false
+    preview_viewport.msaa_3d = Viewport.MSAA_2X
+    preview_container.add_child(preview_viewport)
+
+    var environment := WorldEnvironment.new()
+    var env := Environment.new()
+    env.background_mode = Environment.BG_COLOR
+    env.background_color = Color(0.018, 0.024, 0.032, 1.0)
+    env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    env.ambient_light_color = Color(0.72, 0.76, 0.82, 1.0)
+    env.ambient_light_energy = 1.15
+    env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+    environment.environment = env
+    preview_viewport.add_child(environment)
+
+    preview_root = Node3D.new()
+    preview_root.name = "OdysseusPreview"
+    preview_viewport.add_child(preview_root)
+
+    var source := get_tree().get_first_node_in_group("odyssey_player") as Node3D
+    if source:
+        for child in source.get_children():
+            if child is MeshInstance3D:
+                var visual := child.duplicate() as MeshInstance3D
+                visual.process_mode = Node.PROCESS_MODE_DISABLED
+                visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+                preview_root.add_child(visual)
+    else:
+        push_warning("Backpack preview could not find the live player model.")
+
+    var key := DirectionalLight3D.new()
+    key.rotation_degrees = Vector3(-24.0, 150.0, 0.0)
+    key.light_energy = 1.8
+    key.shadow_enabled = false
+    preview_viewport.add_child(key)
+
+    var fill := DirectionalLight3D.new()
+    fill.rotation_degrees = Vector3(-10.0, -35.0, 0.0)
+    fill.light_energy = 0.65
+    fill.shadow_enabled = false
+    preview_viewport.add_child(fill)
+
+    preview_camera = Camera3D.new()
+    preview_camera.fov = 35.0
+    preview_camera.near = 0.02
+    preview_camera.far = 20.0
+    preview_viewport.add_child(preview_camera)
+    _position_preview_camera()
+
+func _position_preview_camera() -> void:
+    if not preview_camera or not preview_root or not preview_container:
+        return
+    var height := maxf(1.0, preview_container.size.y)
+    var distance := clampf(height / 150.0, 2.4, 3.8)
+    preview_camera.position = Vector3(0.0, 1.18, -distance)
+    preview_camera.look_at(Vector3(0.0, 1.08, 0.0), Vector3.UP)
+    preview_root.position = Vector3(0.0, 0.0, 0.0)
+    preview_root.rotation = Vector3.ZERO
+
+func _sync_3d_preview() -> void:
+    if not preview_root:
+        return
+    var source := get_tree().get_first_node_in_group("odyssey_player") as Node3D
+    if not source:
+        return
+    for child in preview_root.get_children():
+        if child is MeshInstance3D:
+            var source_child := source.get_node_or_null(str(child.name)) as MeshInstance3D
+            if source_child:
+                child.visible = source_child.visible
+                child.transform = source_child.transform
+                child.mesh = source_child.mesh
+                child.material_override = source_child.material_override
 
 func _input(event: InputEvent) -> void:
     if event.is_action_pressed("backpack"):
@@ -183,7 +250,12 @@ func close() -> void:
     queue_redraw()
 
 func _select_tab(tab_name: String) -> void:
+    if tab_name == _active_tab:
+        return
     _active_tab = tab_name
+    for i in tabs.size():
+        var selected := TAB_DEFINITIONS[i][0] == _active_tab
+        tabs[i].disabled = selected
     _refresh()
 
 func _refresh() -> void:
