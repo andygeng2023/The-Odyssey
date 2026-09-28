@@ -18,6 +18,10 @@
 [ext_resource path="res://scripts/core/PhysicsInteractionSystem.gd" type="Script" id="16"]
 [ext_resource path="res://scripts/core/DestructionSystem.gd" type="Script" id="17"]
 [ext_resource path="res://scripts/core/SurvivalDirector.gd" type="Script" id="18"]
+[ext_resource path="res://scripts/core/GatheringSystem.gd" type="Script" id="23"]
+[ext_resource path="res://scripts/core/RealmSystem.gd" type="Script" id="24"]
+[ext_resource path="res://scripts/world/WaterVolume.gd" type="Script" id="25"]
+[ext_resource path="res://scripts/ui/MapUI.gd" type="Script" id="26"]
 [ext_resource path="res://scripts/world/WorldGenerator.gd" type="Script" id="19"]
 [ext_resource path="res://scripts/ui/GameHUD.gd" type="Script" id="20"]
 [ext_resource path="res://scripts/ui/MobileControls.gd" type="Script" id="21"]
@@ -60,6 +64,10 @@ ambient_light_color = Color(0.76, 0.82, 0.90, 1)
 ambient_light_energy = 1.05
 tonemap_mode = 2
 tonemap_exposure = 1.08
+glow_enabled = true
+glow_intensity = 0.65
+glow_strength = 1.15
+glow_bloom = 0.18
 reflected_light_source = 2
 sky = SubResource("Sky")
 [sub_resource type="StandardMaterial3D" id="PlayerBodyMaterial"]
@@ -144,6 +152,10 @@ script = ExtResource("16")
 script = ExtResource("17")
 [node name="SurvivalDirector" type="Node" parent="Systems"]
 script = ExtResource("18")
+[node name="Gathering" type="Node" parent="Systems"]
+script = ExtResource("23")
+[node name="Realms" type="Node" parent="Systems"]
+script = ExtResource("24")
 
 [node name="World" type="Node3D" parent="."]
 script = ExtResource("19")
@@ -153,7 +165,7 @@ position = Vector3(0, 0.80, 5)
 scale = Vector3(0.72, 0.72, 0.72)
 floor_snap_length = 0.55
 floor_stop_on_slope = true
-floor_max_angle = 0.837758
+floor_max_angle = 1.047198
 safe_margin = 0.08
 script = ExtResource("2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
@@ -254,7 +266,7 @@ far = 350.0
 environment = SubResource("Environment")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-48, -28, 0)
-light_energy = 1.75
+light_energy = 1.9
 shadow_enabled = true
 directional_shadow_max_distance = 100.0
 directional_shadow_fade_start = 0.75
@@ -304,6 +316,10 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("21")
 
+[node name="MapLayer" type="CanvasLayer" parent="UI"]
+layer = 35
+[node name="MapUI" type="CanvasLayer" parent="UI/MapLayer"]
+script = ExtResource("26")
 [node name="BackpackLayer" type="CanvasLayer" parent="UI"]
 layer = 40
 [node name="BackpackUI" type="Control" parent="UI/BackpackLayer"]

@@ -13,11 +13,14 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
     discovery = p_discovery
     crafting = get_parent().get_node("Systems/Crafting")
     _make_water()
+    _register_landmarks()
     _make_terrain()
     for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4), Vector3(-28,0,14), Vector3(28,0,14)]:
         _make_tree(p)
     for p in [Vector3(-20,0,3), Vector3(-16,0,8), Vector3(13,0,18), Vector3(22,0,10), Vector3(2,0,22), Vector3(-30,0,8)]:
         _make_rock(p)
+    for data in [[Vector3(-9,0,2), "Fiber", "fiber", 3], [Vector3(-5,0,12), "Herbs", "herb", 2], [Vector3(9,0,9), "Fruit tree", "fruit", 2], [Vector3(15,0,-3), "Shells", "shell", 2], [Vector3(-18,0,-5), "Flint", "flint", 1]]:
+        _make_resource_patch(data[0], data[1], data[2], int(data[3]))
     _make_interactable(Vector3(-3, 0.75, -1), "Campfire site", "Build campfire", _build_campfire)
     _make_interactable(Vector3(7, 0.5, -10), "Raft worksite", "Build raft", _build_raft)
     _make_interactable(Vector3(17, 0.45, -2), "Bridge site", "Build bridge", _build_bridge)
@@ -31,6 +34,13 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
     _make_calypso_horizon()
     _make_wildlife(Vector3(-10, 0, 18), "Deer")
     _make_wildlife(Vector3(20, 0, 13), "Goat")
+
+func _register_landmarks() -> void:
+    discovery.register_landmark("unknown_shore", "Opening Coast", Vector3(0, 0, 5), "opening_coast")
+    discovery.register_landmark("coastal_lookout", "Coastal Lookout", Vector3(24, 0.7, 20), "opening_coast")
+    discovery.register_landmark("first_raft", "First Raft", Vector3(7, 0.5, -10), "opening_coast")
+    discovery.register_landmark("underworld_gate", "Underworld Gate", Vector3(-30, 0, -18), "mythic_realms")
+    discovery.register_landmark("heavens_gate", "Heavens Gate", Vector3(30, 0, -18), "mythic_realms")
 
 func _make_water() -> void:
     var water := MeshInstance3D.new()
@@ -55,8 +65,10 @@ void vertex() {
 }
 void fragment() {
     float shimmer = 0.08 * sin(UV.x * 80.0 + TIME * 1.5);
-    ALBEDO = water_color.rgb + vec3(shimmer);
-    ROUGHNESS = 0.12;
+    float wave_line = 0.5 + 0.5 * sin(UV.y * 45.0 + TIME * 0.8 + UV.x * 12.0);
+    float foam = smoothstep(0.76, 0.98, wave_line) * 0.12;
+    ALBEDO = water_color.rgb + vec3(shimmer + foam * 0.8, shimmer + foam, shimmer * 0.8 + foam);
+    ROUGHNESS = 0.10;
     METALLIC = 0.08;
     ALPHA = water_color.a;
 }
@@ -65,6 +77,15 @@ void fragment() {
     mat.shader = shader
     water.material_override = mat
     add_child(water)
+    var volume := OdysseyWaterVolume.new()
+    volume.name = "WaterVolume"
+    volume.position = Vector3(0, -2.5, -25)
+    var shape := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    box.size = Vector3(100, 8, 60)
+    shape.shape = box
+    volume.add_child(shape)
+    add_child(volume)
 
 func _make_terrain() -> void:
     _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.82, 0.70, 0.50, 1), false)
@@ -76,6 +97,24 @@ func _make_terrain() -> void:
     _make_box("CliffFace", Vector3(0, 1.15, 24), Vector3(72, 2.3, 1.2), Color(0.22, 0.24, 0.23, 1), true)
     for x in [-30.0, -22.0, -14.0, -5.0, 5.0, 14.0, 23.0, 31.0]:
         _make_landform("RockOutcrop", Vector3(x, 0.65, 19.0 + sin(x) * 2.0), Vector3(3.2, 1.3, 2.4), Color(0.40, 0.39, 0.34, 1))
+
+func _make_resource_patch(pos: Vector3, title: String, resource_id: String, amount: int) -> void:
+    var root := _make_interactable(pos, title, "Gather " + resource_id, _gather_resource.bind(resource_id, amount))
+    var mesh := MeshInstance3D.new()
+    var patch := SphereMesh.new()
+    patch.radius = 0.34
+    patch.height = 0.65
+    patch.radial_segments = 8
+    patch.rings = 4
+    mesh.mesh = patch
+    mesh.scale = Vector3(1.2, 0.7, 1.0)
+    mesh.material_override = _material(Color(0.28, 0.48, 0.18, 1))
+    root.add_child(mesh)
+
+func _gather_resource(_node: Node, _player: Node, resource_id: String, amount: int) -> void:
+    inventory.add_material(resource_id, amount)
+    _message("Gathered %d %s." % [amount, resource_id])
+    _node.queue_free()
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
@@ -162,7 +201,11 @@ func _make_city(pos: Vector3) -> void:
     for x in [-4.0, 0.0, 4.0]:
         _make_house(root, Vector3(x, 0, 0), 3.0)
     _make_box_child(root, "Gate", Vector3(0, 2.2, -4), Vector3(10, 4.4, 1), Color(0.72, 0.62, 0.43, 1))
+    _make_box_child(root, "Plaza", Vector3(0, 0.12, 3), Vector3(12, 0.24, 8), Color(0.62, 0.53, 0.39, 1))
+    _make_interactable(pos + Vector3(-4,0.8,3), "Merchant", "Speak with merchant", _speak_merchant)
+    _make_interactable(pos + Vector3(4,0.8,3), "Sailor", "Speak with sailor", _speak_sailor)
     _make_interactable(pos + Vector3(0,0,-5.5), "City gate", "Enter Aegean city", _enter_city)
+    discovery.register_landmark("aegean_city", "Aegean City", pos, "civilization")
 
 func _make_house(parent: Node3D, pos: Vector3, scale: float) -> void:
     _make_box_child(parent, "House", pos + Vector3(0,1.15,0), Vector3(scale,2.3,scale), Color(0.72,0.66,0.54,1))
@@ -192,6 +235,7 @@ func _make_shrine(pos: Vector3) -> void:
             _make_cylinder_child(root, Vector3(x,1.4,z), 0.35, 2.8, Color(0.83,0.78,0.63,1))
     _make_box_child(root, "Altar", Vector3(0,0.7,0), Vector3(4,1.0,2.5), Color(0.64,0.58,0.45,1))
     _make_interactable(pos + Vector3(0,0.7,3), "Athena shrine", "Pray / listen", _visit_shrine)
+    discovery.register_landmark("athena_shrine", "Shrine of Athena", pos, "mythology")
 
 func _make_underwater_gate(pos: Vector3) -> void:
     var root := Node3D.new()
@@ -202,6 +246,7 @@ func _make_underwater_gate(pos: Vector3) -> void:
     _make_box_child(root, "LeftPillar", Vector3(-2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
     _make_box_child(root, "RightPillar", Vector3(2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
     _make_interactable(pos + Vector3(0,0.5,1.5), "Sunken cave", "Dive into cave", _enter_underwater)
+    discovery.register_landmark("sunken_cave", "Sunken Cave", pos, "underwater")
 
 func _make_realm_gate(pos: Vector3, title: String, color: Color, discovery_id: String) -> void:
     var root := Node3D.new()
@@ -218,6 +263,7 @@ func _make_realm_gate(pos: Vector3, title: String, color: Color, discovery_id: S
     ring.material_override = _material(color)
     root.add_child(ring)
     _make_interactable(pos + Vector3(0,0,2.2), title + " gate", "Discover " + title, _discover_realm.bind(discovery_id, title))
+    discovery.register_landmark(discovery_id, title, pos, "mythic_realms")
 
 func _make_calypso_horizon() -> void:
     var island := Node3D.new()
@@ -229,6 +275,7 @@ func _make_calypso_horizon() -> void:
         _make_tree_child(island, Vector3(x,1,0))
     _label(island, "CALYPSO'S ISLAND", Vector3(0,5,0))
     _make_interactable(Vector3(0,0.4,-28), "Distant island", "Chart Calypso's island", _discover_calypso)
+    discovery.register_landmark("calypso_island", "Calypso's Island", island.position, "calypso")
 
 func _make_wildlife(pos: Vector3, species: String) -> void:
     var animal := OdysseyWildlifeAgent.new()
@@ -453,9 +500,38 @@ func _build_raft(_node: Node, _player: Node = null) -> void:
         _message("Raft needs 12 wood and 4 rope.")
         return
     raft_built = true
-    _make_box("Raft", Vector3(7, 0.45, -10), Vector3(4, 0.35, 2.2), Color(0.45,0.28,0.12,1), false)
+    _spawn_raft(Vector3(7, 0.45, -10))
     discovery.discover("first_raft", "opening_coast")
     _message("Raft built. Water becomes a route instead of a boundary.")
+
+func _spawn_raft(pos: Vector3) -> OdysseyBoat:
+    var raft := OdysseyBoat.new()
+    raft.name = "OdysseyRaft"
+    raft.position = pos
+    add_child(raft)
+    var mesh := MeshInstance3D.new()
+    var deck := BoxMesh.new()
+    deck.size = Vector3(4.2, 0.35, 2.4)
+    mesh.mesh = deck
+    mesh.material_override = _material(Color(0.45, 0.28, 0.12, 1))
+    raft.add_child(mesh)
+    var shape := CollisionShape3D.new()
+    var collision := BoxShape3D.new()
+    collision.size = Vector3(4.2, 0.5, 2.4)
+    shape.shape = collision
+    raft.add_child(shape)
+    var boarding := _make_interactable(pos + Vector3(0, 0.6, 1.7), "Raft helm", "Board / leave raft", _board_raft)
+    boarding.set_meta("raft", raft)
+    boarding.reparent(raft)
+    boarding.position = Vector3(0, 0.6, 1.7)
+    return raft
+
+func _board_raft(node: Node, player: Node = null) -> void:
+    if player == null:
+        return
+    var raft := node.get_meta("raft") as OdysseyBoat
+    if raft:
+        raft.toggle_pilot(player as Odysseus)
 
 func _build_bridge(_node: Node, _player: Node = null) -> void:
     if bridge_built:
@@ -482,16 +558,36 @@ func _enter_city(_node: Node, _player: Node = null) -> void:
     discovery.discover("aegean_city", "civilization")
     _message("Aegean city discovered: merchants, craftsmen, sailors and relationships are coming online.")
 
+func _speak_merchant(_node: Node, _player: Node = null) -> void:
+    discovery.discover("merchant_contact", "civilization")
+    var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
+    if relationships:
+        relationships.change("merchant", 5)
+    _message("The merchant offers supplies and rumors. Cities turn exploration into relationships and choices.")
+
+func _speak_sailor(_node: Node, _player: Node = null) -> void:
+    discovery.discover("sailor_contact", "civilization")
+    var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
+    if relationships:
+        relationships.change("sailor", 5)
+    _message("A sailor points toward deeper water and islands beyond the visible coast.")
+
 func _visit_shrine(_node: Node, _player: Node = null) -> void:
     discovery.discover("athena_shrine", "mythology")
     _message("The shrine answers with a sign: gods can alter the journey without becoming a quest marker checklist.")
 
 func _enter_underwater(_node: Node, _player: Node = null) -> void:
     discovery.discover("sunken_cave", "underwater")
+    var realms := get_parent().get_node_or_null("Systems/Realms") as OdysseyRealmSystem
+    if realms:
+        realms.enter("underwater")
     _message("Dive route discovered: submerged ruins, wildlife and treasure belong beneath the surface.")
 
 func _discover_realm(discovery_id: String, title: String, _node: Node = null, _player: Node = null) -> void:
     discovery.discover(discovery_id, "mythic_realms")
+    var realms := get_parent().get_node_or_null("Systems/Realms") as OdysseyRealmSystem
+    if realms:
+        realms.enter("underworld" if title == "Underworld" else ("heavens" if title == "Heavens" else "aegean"))
     _message(title + " discovered. The realm is now a destination rather than a forced story corridor.")
 
 func _discover_calypso(_node: Node, _player: Node = null) -> void:
