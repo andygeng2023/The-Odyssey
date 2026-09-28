@@ -13,6 +13,7 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
     discovery = p_discovery
     crafting = get_parent().get_node("Systems/Crafting")
     _make_water()
+    _register_landmarks()
     _make_terrain()
     for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4), Vector3(-28,0,14), Vector3(28,0,14)]:
         _make_tree(p)
@@ -31,6 +32,13 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
     _make_calypso_horizon()
     _make_wildlife(Vector3(-10, 0, 18), "Deer")
     _make_wildlife(Vector3(20, 0, 13), "Goat")
+
+func _register_landmarks() -> void:
+    discovery.register_landmark("unknown_shore", "Opening Coast", Vector3(0, 0, 5), "opening_coast")
+    discovery.register_landmark("coastal_lookout", "Coastal Lookout", Vector3(24, 0.7, 20), "opening_coast")
+    discovery.register_landmark("first_raft", "First Raft", Vector3(7, 0.5, -10), "opening_coast")
+    discovery.register_landmark("underworld_gate", "Underworld Gate", Vector3(-30, 0, -18), "mythic_realms")
+    discovery.register_landmark("heavens_gate", "Heavens Gate", Vector3(30, 0, -18), "mythic_realms")
 
 func _make_water() -> void:
     var water := MeshInstance3D.new()
@@ -65,6 +73,15 @@ void fragment() {
     mat.shader = shader
     water.material_override = mat
     add_child(water)
+    var volume := OdysseyWaterVolume.new()
+    volume.name = "WaterVolume"
+    volume.position = Vector3(0, -2.5, -25)
+    var shape := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    box.size = Vector3(100, 8, 60)
+    shape.shape = box
+    volume.add_child(shape)
+    add_child(volume)
 
 func _make_terrain() -> void:
     _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.82, 0.70, 0.50, 1), false)
@@ -163,6 +180,7 @@ func _make_city(pos: Vector3) -> void:
         _make_house(root, Vector3(x, 0, 0), 3.0)
     _make_box_child(root, "Gate", Vector3(0, 2.2, -4), Vector3(10, 4.4, 1), Color(0.72, 0.62, 0.43, 1))
     _make_interactable(pos + Vector3(0,0,-5.5), "City gate", "Enter Aegean city", _enter_city)
+    discovery.register_landmark("aegean_city", "Aegean City", pos, "civilization")
 
 func _make_house(parent: Node3D, pos: Vector3, scale: float) -> void:
     _make_box_child(parent, "House", pos + Vector3(0,1.15,0), Vector3(scale,2.3,scale), Color(0.72,0.66,0.54,1))
@@ -192,6 +210,7 @@ func _make_shrine(pos: Vector3) -> void:
             _make_cylinder_child(root, Vector3(x,1.4,z), 0.35, 2.8, Color(0.83,0.78,0.63,1))
     _make_box_child(root, "Altar", Vector3(0,0.7,0), Vector3(4,1.0,2.5), Color(0.64,0.58,0.45,1))
     _make_interactable(pos + Vector3(0,0.7,3), "Athena shrine", "Pray / listen", _visit_shrine)
+    discovery.register_landmark("athena_shrine", "Shrine of Athena", pos, "mythology")
 
 func _make_underwater_gate(pos: Vector3) -> void:
     var root := Node3D.new()
@@ -202,6 +221,7 @@ func _make_underwater_gate(pos: Vector3) -> void:
     _make_box_child(root, "LeftPillar", Vector3(-2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
     _make_box_child(root, "RightPillar", Vector3(2,1.8,0), Vector3(0.8,3.6,0.8), Color(0.22,0.30,0.34,1))
     _make_interactable(pos + Vector3(0,0.5,1.5), "Sunken cave", "Dive into cave", _enter_underwater)
+    discovery.register_landmark("sunken_cave", "Sunken Cave", pos, "underwater")
 
 func _make_realm_gate(pos: Vector3, title: String, color: Color, discovery_id: String) -> void:
     var root := Node3D.new()
@@ -218,6 +238,7 @@ func _make_realm_gate(pos: Vector3, title: String, color: Color, discovery_id: S
     ring.material_override = _material(color)
     root.add_child(ring)
     _make_interactable(pos + Vector3(0,0,2.2), title + " gate", "Discover " + title, _discover_realm.bind(discovery_id, title))
+    discovery.register_landmark(discovery_id, title, pos, "mythic_realms")
 
 func _make_calypso_horizon() -> void:
     var island := Node3D.new()
@@ -229,6 +250,7 @@ func _make_calypso_horizon() -> void:
         _make_tree_child(island, Vector3(x,1,0))
     _label(island, "CALYPSO'S ISLAND", Vector3(0,5,0))
     _make_interactable(Vector3(0,0.4,-28), "Distant island", "Chart Calypso's island", _discover_calypso)
+    discovery.register_landmark("calypso_island", "Calypso's Island", island.position, "calypso")
 
 func _make_wildlife(pos: Vector3, species: String) -> void:
     var animal := OdysseyWildlifeAgent.new()
@@ -453,9 +475,36 @@ func _build_raft(_node: Node, _player: Node = null) -> void:
         _message("Raft needs 12 wood and 4 rope.")
         return
     raft_built = true
-    _make_box("Raft", Vector3(7, 0.45, -10), Vector3(4, 0.35, 2.2), Color(0.45,0.28,0.12,1), false)
+    _spawn_raft(Vector3(7, 0.45, -10))
     discovery.discover("first_raft", "opening_coast")
     _message("Raft built. Water becomes a route instead of a boundary.")
+
+func _spawn_raft(pos: Vector3) -> OdysseyBoat:
+    var raft := OdysseyBoat.new()
+    raft.name = "OdysseyRaft"
+    raft.position = pos
+    add_child(raft)
+    var mesh := MeshInstance3D.new()
+    var deck := BoxMesh.new()
+    deck.size = Vector3(4.2, 0.35, 2.4)
+    mesh.mesh = deck
+    mesh.material_override = _material(Color(0.45, 0.28, 0.12, 1))
+    raft.add_child(mesh)
+    var shape := CollisionShape3D.new()
+    var collision := BoxShape3D.new()
+    collision.size = Vector3(4.2, 0.5, 2.4)
+    shape.shape = collision
+    raft.add_child(shape)
+    var boarding := _make_interactable(pos + Vector3(0, 0.6, 1.7), "Raft helm", "Board / leave raft", _board_raft)
+    boarding.set_meta("raft", raft)
+    return raft
+
+func _board_raft(node: Node, player: Node = null) -> void:
+    if player == null:
+        return
+    var raft := node.get_meta("raft") as OdysseyBoat
+    if raft:
+        raft.toggle_pilot(player as Odysseus)
 
 func _build_bridge(_node: Node, _player: Node = null) -> void:
     if bridge_built:
