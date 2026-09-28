@@ -30,12 +30,14 @@ class HUDArt extends Control:
             _draw_heart(center, 9.0, i < filled or (i == filled and partial > 0.01))
 
         var stamina := clampf(player.traversal.stamina / maxf(1.0, player.traversal.max_stamina), 0.0, 1.0)
-        var ring_center := Vector2(s.x - 62.0, 52.0)
-        draw_arc(ring_center, 27.0, -PI * 0.5, TAU - PI * 0.5, 64, Color(0.08, 0.10, 0.09, 0.55), 8.0, true)
-        draw_arc(ring_center, 27.0, -PI * 0.5, -PI * 0.5 + TAU * stamina, 64, Color(0.76, 0.91, 0.56, 0.98), 8.0, true)
-        draw_circle(ring_center, 9.0, Color(0.09, 0.12, 0.10, 0.88))
-        var ring_text := "O₂" if player.underwater else ("↗" if player.climbing else "·")
-        draw_string(ThemeDB.fallback_font, ring_center + Vector2(-7, 6), ring_text, HORIZONTAL_ALIGNMENT_CENTER, 16, 11, Color(0.95, 0.93, 0.82, 1))
+        var stamina_active := player.climbing or player.swimming or stamina < 0.995
+        if stamina_active:
+            var ring_center := Vector2(s.x - 62.0, 52.0)
+            draw_arc(ring_center, 27.0, -PI * 0.5, TAU - PI * 0.5, 64, Color(0.08, 0.10, 0.09, 0.55), 8.0, true)
+            draw_arc(ring_center, 27.0, -PI * 0.5, -PI * 0.5 + TAU * stamina, 64, Color(0.76, 0.91, 0.56, 0.98), 8.0, true)
+            draw_circle(ring_center, 9.0, Color(0.09, 0.12, 0.10, 0.88))
+            var ring_text := "O₂" if player.underwater else ("↗" if player.climbing else "·")
+            draw_string(ThemeDB.fallback_font, ring_center + Vector2(-7, 6), ring_text, HORIZONTAL_ALIGNMENT_CENTER, 16, 11, Color(0.95, 0.93, 0.82, 1))
 
         var wood := int(inventory.bulk.get("wood", 0)) if inventory else 0
         var stone := int(inventory.bulk.get("stone", 0)) if inventory else 0
