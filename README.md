@@ -1,8 +1,8 @@
 # The Odyssey
 
-The Odyssey is being rebuilt as a custom C++ game engine project.
+The Odyssey is a custom C++ game engine project built specifically for the game.
 
-The old Godot prototype remains in the repository as historical reference. The active runtime is engine/.
+The active runtime lives entirely in `engine/`. The repository has no dependency on a general-purpose game engine.
 
 ## Build
 
@@ -16,7 +16,7 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-Run the resulting odyssey executable.
+Run the resulting `odyssey` executable.
 
 ## Current engine goals
 
@@ -27,4 +27,4 @@ Run the resulting odyssey executable.
 5. Systemic world simulation.
 6. Mobile and web backends after the desktop physics slice is stable.
 
-See docs/OWN_ENGINE_ARCHITECTURE.md.
+See `docs/OWN_ENGINE_ARCHITECTURE.md`.
