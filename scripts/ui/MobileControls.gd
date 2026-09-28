@@ -26,6 +26,7 @@ func _ready() -> void:
     # mouse behavior deterministic across web and mobile.
     mouse_filter = Control.MOUSE_FILTER_STOP
     process_mode = Node.PROCESS_MODE_ALWAYS
+    set_process_input(true)
     _create_action_buttons()
     queue_redraw()
 
@@ -107,6 +108,22 @@ func _camera_zone(point: Vector2) -> bool:
     return point.x >= size.x * CAMERA_START_X and _button_at(point) == ""
 
 func _on_gui_button_pressed(button: String) -> void:
+    # Route gameplay buttons directly to their authoritative targets. Signals
+    # remain available for other systems, but the core mobile path does not
+    # depend on another Control receiving a signal correctly.
+    var player := get_tree().get_first_node_in_group("odyssey_player") as Odysseus
+    if player:
+        if button == "interact":
+            player.try_interact()
+        elif button == "jump":
+            player.handle_mobile_action("jump")
+        elif button == "sprint":
+            player.handle_mobile_action("sprint")
+    if button == "backpack":
+        var backpack_ui := get_node_or_null("../../BackpackLayer/BackpackUI") as OdysseyBackpackUI
+        if backpack_ui:
+            backpack_ui.toggle()
+
     if button == "interact":
         interact_pressed.emit()
     elif button == "backpack":
