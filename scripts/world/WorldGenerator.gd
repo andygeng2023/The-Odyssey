@@ -445,21 +445,31 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     shoulder.material_override = _material(color.lightened(0.04))
     root.add_child(shoulder)
 
+    # The visible landform has two stacked meshes. Previously only the main
+    # frustum had collision, so the wider shoulder could visually occupy space
+    # that the player could not physically stand on. Keep the collision volumes
+    # matched to both visible surfaces.
     var body := StaticBody3D.new()
+    body.collision_layer = 1
+    body.collision_mask = 1
     root.add_child(body)
-    var shape := CollisionShape3D.new()
-    var collision := ConvexPolygonShape3D.new()
-    var points := PackedVector3Array()
-    var segments := 12
-    for i in range(segments):
-        var a := TAU * float(i) / float(segments)
-        var r_bottom := 1.0
-        var r_top := 0.72
-        points.append(Vector3(cos(a) * r_bottom * scale.x, -scale.y, sin(a) * r_bottom * scale.z))
-        points.append(Vector3(cos(a) * r_top * scale.x, scale.y, sin(a) * r_top * scale.z))
-    collision.points = points
-    shape.shape = collision
-    body.add_child(shape)
+
+    var main_shape := CollisionShape3D.new()
+    var main_collision := CylinderShape3D.new()
+    main_collision.radius = scale.x
+    main_collision.height = scale.y * 2.0
+    main_shape.shape = main_collision
+    main_shape.rotation_degrees = Vector3(0, 11, 0)
+    body.add_child(main_shape)
+
+    var shoulder_shape := CollisionShape3D.new()
+    var shoulder_collision := CylinderShape3D.new()
+    shoulder_collision.radius = 0.86 * 0.72 * maxf(scale.x, scale.z)
+    shoulder_collision.height = 1.2 * 0.45 * scale.y
+    shoulder_shape.shape = shoulder_collision
+    shoulder_shape.position = Vector3(0, 1.15 * scale.y, 0.15)
+    shoulder_shape.rotation_degrees = Vector3(0, 11, 0)
+    body.add_child(shoulder_shape)
 
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: bool) -> Node3D:
     var body: Node3D = StaticBody3D.new() if solid else Node3D.new()
