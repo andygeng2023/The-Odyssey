@@ -29,7 +29,7 @@ func _ready() -> void:
     mouse_filter = Control.MOUSE_FILTER_STOP
     visible = false
     set_process_input(true)
-    _mobile_controls = get_node_or_null("../MobileControls") as OdysseyMobileControls
+    _mobile_controls = get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
     if _mobile_controls:
         _mobile_controls.backpack_pressed.connect(toggle)
     _build_ui()

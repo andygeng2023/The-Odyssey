@@ -358,7 +358,11 @@ func _add_collision(root: Node3D, pos: Vector3, size: Vector3) -> void:
 func _material(color: Color) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
     mat.albedo_color = color
-    mat.roughness = 0.82
+    mat.roughness = 0.72
+    mat.metallic = 0.04
+    mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+    mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+    mat.cull_mode = BaseMaterial3D.CULL_BACK
     return mat
 
 func _harvest_tree(node: Node, _player: Node = null) -> void:
