@@ -13,6 +13,7 @@ const BUTTON_SIZE: float = 88.0
 const BUTTON_GAP: float = 14.0
 const CAMERA_START_X: float = 0.34
 const BACKPACK_SIZE: float = 74.0
+const MAP_SIZE: float = 74.0
 
 var move_vector := Vector2.ZERO
 var _touch_roles: Dictionary = {}
@@ -35,7 +36,7 @@ func _notification(what: int) -> void:
         queue_redraw()
 
 func _create_action_buttons() -> void:
-    for id in ["jump", "interact", "sprint", "backpack"]:
+    for id in ["jump", "interact", "sprint", "backpack", "map"]:
         var button := Button.new()
         button.name = id.capitalize() + "Button"
         button.focus_mode = Control.FOCUS_NONE
@@ -82,7 +83,7 @@ func _layout_buttons() -> void:
         var rect: Rect2 = rects[id] as Rect2
         button.position = rect.position
         button.size = rect.size
-        button.text = "BAG" if id == "backpack" else id.to_upper()
+        button.text = "BAG" if id == "backpack" else ("MAP" if id == "map" else id.to_upper())
 
 func _joystick_center() -> Vector2:
     return Vector2(maxf(118.0, size.x * 0.15), size.y - maxf(122.0, size.y * 0.17))
@@ -95,7 +96,8 @@ func _button_rects() -> Dictionary:
         "jump": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE * 2.0 - BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE),
         "interact": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
         "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
-        "backpack": Rect2(right - BACKPACK_SIZE, 28.0, BACKPACK_SIZE, BACKPACK_SIZE)
+        "backpack": Rect2(right - BACKPACK_SIZE, 28.0, BACKPACK_SIZE, BACKPACK_SIZE),
+        "map": Rect2(right - BACKPACK_SIZE * 2.0 - BUTTON_GAP, 28.0, MAP_SIZE, MAP_SIZE)
     }
 
 func _button_at(point: Vector2) -> String:
@@ -119,6 +121,10 @@ func _on_button_pressed(button: String) -> void:
                 player.handle_mobile_action("jump")
             "sprint":
                 player.handle_mobile_action("sprint")
+    if button == "map":
+        var map_ui := get_node_or_null("../../MapLayer/MapUI") as OdysseyMapUI
+        if map_ui:
+            map_ui.toggle()
     if button == "backpack":
         var backpack_ui := get_node_or_null("../../BackpackLayer/BackpackUI") as OdysseyBackpackUI
         if backpack_ui:
