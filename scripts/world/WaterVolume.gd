@@ -14,7 +14,7 @@ func contains(point: Vector3) -> bool:
     return absf(point.x) <= bounds.x and absf(point.z + 28.0) <= bounds.z and point.y >= bottom_height and point.y <= surface_height + 1.5
 
 func depth_at(point: Vector3) -> float:
-    if absf(point.x) > bounds.x or absf(point.z + 27.5) > bounds.z:
+    if absf(point.x) > bounds.x or absf(point.z + 28.0) > bounds.z:
         return 0.0
     return maxf(0.0, surface_height - point.y)
 
