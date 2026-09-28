@@ -9,6 +9,7 @@ const ROW_HEIGHT := 72.0
 var inventory: OdysseyInventory
 var tabs: Array[Button] = []
 var item_list: VBoxContainer
+var list_scroll: ScrollContainer
 var count_label: Label
 var hint_label: Label
 var close_button: Button
@@ -71,13 +72,26 @@ func _build_ui() -> void:
         button.text = definition[1]
         button.focus_mode = Control.FOCUS_NONE
         button.add_theme_font_size_override("font_size", 13)
+        var tab_style := StyleBoxFlat.new()
+        tab_style.bg_color = Color(0.12,0.13,0.11,0.94)
+        tab_style.border_color = Color(0.42,0.34,0.20,0.9)
+        tab_style.set_border_width_all(1)
+        tab_style.set_corner_radius_all(8)
+        button.add_theme_stylebox_override("normal", tab_style)
+        button.add_theme_stylebox_override("hover", tab_style.duplicate())
+        button.add_theme_color_override("font_color", Color(0.88,0.82,0.68,1))
         button.button_down.connect(_select_tab.bind(definition[0]))
         add_child(button)
         tabs.append(button)
 
+    list_scroll = ScrollContainer.new()
+    list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    list_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    list_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+    add_child(list_scroll)
     item_list = VBoxContainer.new()
     item_list.add_theme_constant_override("separation", 8)
-    add_child(item_list)
+    list_scroll.add_child(item_list)
 
 func _process(_delta: float) -> void:
     if visible:
@@ -105,8 +119,10 @@ func _layout() -> void:
     for i in tabs.size():
         tabs[i].position = Vector2(content_left + i * tab_width, top + 78.0)
         tabs[i].size = Vector2(tab_width - 5.0, TAB_HEIGHT)
-    item_list.position = Vector2(content_left, content_top)
-    item_list.size = Vector2(content_width, content_height)
+    list_scroll.position = Vector2(content_left, content_top)
+    list_scroll.size = Vector2(content_width, content_height)
+    item_list.position = Vector2.ZERO
+    item_list.size = Vector2(content_width, maxf(content_height, item_list.get_combined_minimum_size().y))
     if preview_container:
         var preview_rect := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
         preview_container.position = preview_rect.position
@@ -119,13 +135,15 @@ func _layout() -> void:
 
 func _draw() -> void:
     var s := size
-    draw_rect(Rect2(Vector2.ZERO, s), Color(0.008, 0.012, 0.018, 0.78))
+    draw_rect(Rect2(Vector2.ZERO, s), Color(0.015,0.022,0.018,0.84))
+    draw_circle(Vector2(s.x * 0.10, s.y * 0.15), 180.0, Color(0.30,0.38,0.25,0.12))
+    draw_circle(Vector2(s.x * 0.92, s.y * 0.84), 220.0, Color(0.50,0.35,0.16,0.08))
     var left := s.x * 0.04
     var top := s.y * 0.07
     var width := s.x * 0.92
     var height := s.y * 0.86
-    _draw_panel(Rect2(left, top, width, height), Color(0.055, 0.047, 0.035, 0.98), Color(0.76, 0.61, 0.32, 0.95), 2.0, 18.0)
-    draw_string(ThemeDB.fallback_font, Vector2(left + 28.0, top + 43.0), "BACKPACK", HORIZONTAL_ALIGNMENT_LEFT, 300.0, 28, Color(0.96, 0.88, 0.67, 1))
+    _draw_panel(Rect2(left, top, width, height), Color(0.105,0.085,0.055,0.985), Color(0.86,0.69,0.37,0.98), 3.0, 22.0)
+    draw_string(ThemeDB.fallback_font, Vector2(left + 28.0, top + 43.0), "ODYSSEUS  •  BACKPACK", HORIZONTAL_ALIGNMENT_LEFT, 300.0, 28, Color(0.96, 0.88, 0.67, 1))
     draw_string(ThemeDB.fallback_font, Vector2(left + 30.0, top + 67.0), "ODYSSEUS", HORIZONTAL_ALIGNMENT_LEFT, 300.0, 13, Color(0.60, 0.62, 0.60, 1))
 
     var preview := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
@@ -290,10 +308,20 @@ func _make_item_row(entry: Dictionary) -> Control:
     style.set_corner_radius_all(10)
     row.add_theme_stylebox_override("panel", style)
     row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
+    var icon := Panel.new()
+    icon.position = Vector2(10, 14)
+    icon.size = Vector2(42, 42)
+    var icon_style := StyleBoxFlat.new()
+    icon_style.bg_color = Color(0.30,0.42,0.30,0.95) if _active_tab == "Foodstuff" else Color(0.42,0.34,0.20,0.95)
+    icon_style.border_color = Color(0.72,0.62,0.42,0.65)
+    icon_style.set_border_width_all(1)
+    icon_style.set_corner_radius_all(10)
+    icon.add_theme_stylebox_override("panel", icon_style)
+    row.add_child(icon)
 
     var name_label := Label.new()
     name_label.text = str(entry.get("name", "Item"))
-    name_label.position = Vector2(18, 8)
+    name_label.position = Vector2(64, 8)
     name_label.size = Vector2(0, 25)
     name_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
     name_label.anchor_right = 0.55
@@ -304,7 +332,7 @@ func _make_item_row(entry: Dictionary) -> Control:
 
     var description := Label.new()
     description.text = str(entry.get("description", ""))
-    description.position = Vector2(18, 36)
+    description.position = Vector2(64, 36)
     description.size = Vector2(0, 22)
     description.set_anchors_preset(Control.PRESET_TOP_WIDE)
     description.anchor_right = 0.74
