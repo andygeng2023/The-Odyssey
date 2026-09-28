@@ -289,9 +289,13 @@ func _sync_3d_preview() -> void:
                 child.material_override = source_child.material_override
 
 func _input(event: InputEvent) -> void:
-    if not visible:
-        return
-    if event.is_action_pressed("backpack") or event.is_action_pressed("ui_cancel"):
+    if event.is_action_pressed("backpack"):
+        if visible:
+            close()
+        else:
+            open()
+        get_viewport().set_input_as_handled()
+    elif visible and event.is_action_pressed("ui_cancel"):
         close()
         get_viewport().set_input_as_handled()
 
