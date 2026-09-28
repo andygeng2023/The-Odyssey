@@ -9,6 +9,8 @@ extends Node3D
 @onready var relationships: OdysseyRelationshipSystem = $Systems/Relationships
 @onready var features: OdysseyWorldFeatureRegistry = $Systems/Features
 @onready var backpack: OdysseyBackpackUI = $UI/BackpackLayer/BackpackUI
+@onready var map_ui: OdysseyMapUI = $UI/MapLayer/MapUI
+@onready var weather: OdysseyWeatherSystem = $Systems/Weather
 
 func _ready() -> void:
     inventory.add_material("wood", 4)
@@ -29,7 +31,13 @@ func _ready() -> void:
     hud.bind_player(player)
     hud.bind_inventory(inventory)
     backpack.bind_inventory(inventory)
+    map_ui.bind_discovery(discovery)
+    weather.condition_changed.connect(_on_weather_changed)
     hud.show_message("The journey begins. Explore, gather, build, climb, sail and discover your way home.", 6.0)
+
+func _on_weather_changed(condition: OdysseyWeatherSystem.Condition) -> void:
+    var name := weather.condition_name().capitalize()
+    hud.show_message("Weather changed: " + name + ". Sea state: " + weather.sea_state + ".", 3.0)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event.is_action_pressed("interact"):
