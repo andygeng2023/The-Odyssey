@@ -226,9 +226,13 @@ func _fast_travel(id: String) -> void:
         hud.show_message("Travelled to " + str(discovery.landmarks[id].title) + ".", 3.0)
 
 func _input(event: InputEvent) -> void:
-    if not _open:
-        return
-    if event.is_action_pressed("map") or event.is_action_pressed("ui_cancel"):
+    if event.is_action_pressed("map"):
+        if _open:
+            close_map()
+        else:
+            open_map()
+        get_viewport().set_input_as_handled()
+    elif _open and event.is_action_pressed("ui_cancel"):
         close_map()
         get_viewport().set_input_as_handled()
 
