@@ -20,6 +20,7 @@ func _ready() -> void:
     inventory.add_blueprint("campfire", "Campfire Blueprint")
     inventory.add_blueprint("raft", "Raft Blueprint")
     inventory.add_important("storm_survivor")
+    inventory.equip("climbing_kit")
     relationships.set_character("athena", 0, "guide")
     relationships.set_character("telemachus", 0, "family")
     relationships.set_character("calypso", 0, "island_keeper")
