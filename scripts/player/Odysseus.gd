@@ -5,6 +5,10 @@ extends CharacterBody3D
 @onready var traversal: OdysseyTraversalSystem = $Traversal
 @onready var camera: OdysseyAdventureCamera = $"../CameraRig"
 
+const SAFE_SPAWN := Vector3(0.0, 1.05, 5.0)
+const FALL_LIMIT := -7.0
+const WORLD_LIMIT := 75.0
+
 var climbing := false
 var swimming := false
 var gravity := 18.0
@@ -13,17 +17,22 @@ var sprint_speed := 7.0
 var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
+var _recovering := false
 
 func _ready() -> void:
-    floor_snap_length = 0.45
+    floor_snap_length = 0.55
     floor_stop_on_slope = true
     floor_max_angle = deg_to_rad(48.0)
-    mobile_controls = get_node_or_null("../UI/MobileControls") as OdysseyMobileControls
+    safe_margin = 0.08
+    up_direction = Vector3.UP
+    mobile_controls = get_node_or_null("../UI/MobileLayer/MobileControls") as OdysseyMobileControls
     if mobile_controls:
         mobile_controls.interact_pressed.connect(try_interact)
         mobile_controls.action_pressed.connect(_on_mobile_action)
 
 func _physics_process(delta: float) -> void:
+    _recover_if_out_of_bounds()
+
     var input_direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
     if mobile_controls and mobile_controls.move_vector.length_squared() > 0.01:
         input_direction = mobile_controls.move_vector
@@ -69,8 +78,20 @@ func _physics_process(delta: float) -> void:
     if world_direction.length_squared() > 0.001:
         rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
 
-    if Input.is_action_just_pressed("interact"):
-        try_interact()
+func _recover_if_out_of_bounds() -> void:
+    if _recovering:
+        return
+    if global_position.y < FALL_LIMIT or absf(global_position.x) > WORLD_LIMIT or absf(global_position.z) > WORLD_LIMIT:
+        _recovering = true
+        velocity = Vector3.ZERO
+        global_position = SAFE_SPAWN
+        climbing = false
+        swimming = false
+        await get_tree().physics_frame
+        _recovering = false
+        var hud := get_node_or_null("../UI/GameHUD") as OdysseyGameHUD
+        if hud:
+            hud.show_message("You reached the edge of the world. Returned to solid ground.", 2.5)
 
 func _on_mobile_action(action: String) -> void:
     match action:
@@ -81,8 +102,6 @@ func _on_mobile_action(action: String) -> void:
                 velocity.y = jump_velocity
         "sprint":
             mobile_sprint = not mobile_sprint
-        "action":
-            try_interact()
 
 func try_interact() -> bool:
     var nearest: OdysseyPrototypeInteractable = null
