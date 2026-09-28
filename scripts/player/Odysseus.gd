@@ -12,8 +12,12 @@ var speed := 4.8
 var sprint_speed := 7.0
 var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
+var mobile_sprint := false
 
 func _ready() -> void:
+    floor_snap_length = 0.45
+    floor_stop_on_slope = true
+    floor_max_angle = deg_to_rad(48.0)
     mobile_controls = get_node_or_null("../UI/MobileControls") as OdysseyMobileControls
     if mobile_controls:
         mobile_controls.interact_pressed.connect(try_interact)
@@ -35,7 +39,8 @@ func _physics_process(delta: float) -> void:
     swimming = global_position.z < -17.0
     climbing = is_on_wall() and not is_on_floor() and not swimming and world_direction.length_squared() > 0.05
 
-    var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
+    var sprinting := Input.is_action_pressed("sprint") or mobile_sprint
+    var current_speed := sprint_speed if sprinting else speed
     velocity.x = world_direction.x * current_speed
     velocity.z = world_direction.z * current_speed
 
@@ -53,6 +58,10 @@ func _physics_process(delta: float) -> void:
         velocity.y = 0.0
 
     move_and_slide()
+
+    if not swimming and is_on_floor():
+        apply_floor_snap()
+
     traversal.tick(delta, climbing, swimming)
     if traversal.stamina <= 0.0:
         climbing = false
@@ -60,18 +69,24 @@ func _physics_process(delta: float) -> void:
     if world_direction.length_squared() > 0.001:
         rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
 
-func _on_mobile_action(action: String) -> void:
-    if action == "jump":
-        if swimming:
-            velocity.y = 4.0
-        elif is_on_floor():
-            velocity.y = jump_velocity
-    else:
+    if Input.is_action_just_pressed("interact"):
         try_interact()
+
+func _on_mobile_action(action: String) -> void:
+    match action:
+        "jump":
+            if swimming:
+                velocity.y = 4.0
+            elif is_on_floor():
+                velocity.y = jump_velocity
+        "sprint":
+            mobile_sprint = not mobile_sprint
+        "action":
+            try_interact()
 
 func try_interact() -> bool:
     var nearest: OdysseyPrototypeInteractable = null
-    var nearest_distance: float = 3.2
+    var nearest_distance: float = 3.8
     for node in get_tree().get_nodes_in_group("odyssey_interactable"):
         if not is_instance_valid(node):
             continue
