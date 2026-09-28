@@ -1,14 +1,14 @@
 class_name OdysseyAdventureCamera
 extends Node3D
 
-@export var height: float = 2.8
+@export var height: float = 1.65
 @export var sensitivity: float = 1.0
-@export var min_pitch: float = -0.75
-@export var max_pitch: float = 0.45
+@export var min_pitch: float = -0.55
+@export var max_pitch: float = 0.35
 @export var target_path: NodePath = NodePath("../Player")
 
 var yaw: float = 0.0
-var pitch: float = -0.20
+var pitch: float = -0.16
 var _target: Node3D
 
 func _ready() -> void:
