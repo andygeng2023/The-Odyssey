@@ -24,7 +24,7 @@ func _ready() -> void:
     # This control owns the complete mobile input surface. The visible Button
     # nodes are visual only; handling the hit rectangles here makes touch and
     # mouse behavior deterministic across web and mobile.
-    mouse_filter = Control.MOUSE_FILTER_STOP
+    mouse_filter = Control.MOUSE_FILTER_IGNORE
     process_mode = Node.PROCESS_MODE_ALWAYS
     set_process_input(true)
     _create_action_buttons()
@@ -40,7 +40,8 @@ func _create_action_buttons() -> void:
         button.name = id.capitalize() + "Button"
         button.focus_mode = Control.FOCUS_NONE
         button.mouse_filter = Control.MOUSE_FILTER_STOP
-        button.pressed.connect(_on_button_pressed.bind(id))
+        button.z_index = 100
+        button.button_down.connect(_on_button_pressed.bind(id))
         button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
         add_child(button)
         _buttons[id] = button
