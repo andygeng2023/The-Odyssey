@@ -1,103 +1,110 @@
 class_name OdysseyGameHUD
 extends CanvasLayer
 
-var hud_label: Label
-var message_label: Label
-var message_timer := 0.0
+class HUDArt extends Control:
+    var player: Odysseus
+    var inventory: OdysseyInventory
+    var survival: OdysseySurvivalSystem
+    var message := ""
+    var message_time := 0.0
+
+    func _ready() -> void:
+        mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+    func _process(delta: float) -> void:
+        message_time = maxf(0.0, message_time - delta)
+        queue_redraw()
+
+    func _draw() -> void:
+        if not player:
+            return
+        var s := size
+        var health := survival.health if survival else 5.0
+        var max_health := survival.max_health if survival else 5.0
+        var hearts := int(ceil(max_health))
+        var filled := int(floor(health))
+        var partial := health - floor(health)
+
+        for i in hearts:
+            var center := Vector2(34.0 + i * 30.0, 32.0)
+            _draw_heart(center, 9.0, i < filled or (i == filled and partial > 0.01))
+
+        var stamina := clampf(player.traversal.stamina / maxf(1.0, player.traversal.max_stamina), 0.0, 1.0)
+        var ring_center := Vector2(s.x - 62.0, 52.0)
+        draw_arc(ring_center, 27.0, -PI * 0.5, TAU - PI * 0.5, 64, Color(0.08, 0.10, 0.09, 0.55), 8.0, true)
+        draw_arc(ring_center, 27.0, -PI * 0.5, -PI * 0.5 + TAU * stamina, 64, Color(0.76, 0.91, 0.56, 0.98), 8.0, true)
+        draw_circle(ring_center, 9.0, Color(0.09, 0.12, 0.10, 0.88))
+        var ring_text := "O₂" if player.underwater else ("↗" if player.climbing else "·")
+        draw_string(ThemeDB.fallback_font, ring_center + Vector2(-7, 6), ring_text, HORIZONTAL_ALIGNMENT_CENTER, 16, 11, Color(0.95, 0.93, 0.82, 1))
+
+        var wood := int(inventory.bulk.get("wood", 0)) if inventory else 0
+        var stone := int(inventory.bulk.get("stone", 0)) if inventory else 0
+        var rope := int(inventory.bulk.get("rope", 0)) if inventory else 0
+        draw_string(ThemeDB.fallback_font, Vector2(28, s.y - 38), "◈ %d    ◆ %d    ≋ %d" % [wood, stone, rope], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.95, 0.89, 0.72, 0.92))
+
+        if message_time > 0.0 and message != "":
+            var text_size := ThemeDB.fallback_font.get_string_size(message, HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
+            var center := Vector2(s.x * 0.5, s.y - 92.0)
+            draw_circle(center, 22.0, Color(0.03, 0.05, 0.045, 0.72))
+            draw_string(ThemeDB.fallback_font, center + Vector2(-text_size.x * 0.5, 6), message, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.98, 0.94, 0.82, 1))
+
+    func _draw_heart(center: Vector2, radius: float, filled: bool) -> void:
+        var c := Color(0.84, 0.24, 0.22, 0.98) if filled else Color(0.14, 0.11, 0.10, 0.60)
+        draw_circle(center + Vector2(-radius * 0.42, -radius * 0.18), radius * 0.52, c)
+        draw_circle(center + Vector2(radius * 0.42, -radius * 0.18), radius * 0.52, c)
+        var points := PackedVector2Array([
+            center + Vector2(-radius * 0.92, 0),
+            center + Vector2(radius * 0.92, 0),
+            center + Vector2(0, radius * 1.05)
+        ])
+        draw_colored_polygon(points, c)
+
 var player: Odysseus
 var inventory: OdysseyInventory
 var survival: OdysseySurvivalSystem
 var weather: OdysseyWeatherSystem
 var underwater_overlay: ColorRect
+var art: HUDArt
 
 func _ready() -> void:
-    var panel := Panel.new()
-    panel.position = Vector2(18, 18)
-    panel.size = Vector2(440, 145)
-    var style := StyleBoxFlat.new()
-    style.bg_color = Color(0.025, 0.045, 0.065, 0.88)
-    style.border_color = Color(0.92, 0.84, 0.62, 0.85)
-    style.set_border_width_all(2)
-    style.set_corner_radius_all(14)
-    panel.add_theme_stylebox_override("panel", style)
-    add_child(panel)
-
-    hud_label = Label.new()
-    hud_label.position = Vector2(18, 14)
-    hud_label.size = Vector2(404, 72)
-    hud_label.add_theme_font_size_override("font_size", 17)
-    hud_label.add_theme_color_override("font_color", Color(1, 0.96, 0.82, 1))
-    panel.add_child(hud_label)
-
-    var instruction_label := Label.new()
-    instruction_label.position = Vector2(18, 86)
-    instruction_label.size = Vector2(404, 48)
-    instruction_label.text = "MOVE  •  DRAG RIGHT TO LOOK\nJUMP  •  INTERACT  •  EXPLORE"
-    instruction_label.add_theme_font_size_override("font_size", 14)
-    instruction_label.add_theme_color_override("font_color", Color(0.90, 0.93, 0.96, 1))
-    panel.add_child(instruction_label)
-
-    var message_panel := Panel.new()
-    message_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-    message_panel.position = Vector2(-430, -112)
-    message_panel.size = Vector2(860, 72)
-    var message_style := StyleBoxFlat.new()
-    message_style.bg_color = Color(0.02, 0.04, 0.06, 0.84)
-    message_style.border_color = Color(0.82, 0.73, 0.48, 0.72)
-    message_style.set_border_width_all(2)
-    message_style.set_corner_radius_all(16)
-    message_panel.add_theme_stylebox_override("panel", message_style)
+    process_mode = Node.PROCESS_MODE_ALWAYS
+    layer = 20
+    art = HUDArt.new()
+    art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    add_child(art)
 
     underwater_overlay = ColorRect.new()
-    underwater_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-    underwater_overlay.color = Color(0.02, 0.18, 0.30, 0.30)
+    underwater_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    underwater_overlay.color = Color(0.02, 0.20, 0.30, 0.20)
     underwater_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
     underwater_overlay.visible = false
     add_child(underwater_overlay)
-    move_child(underwater_overlay, 0)
-    add_child(message_panel)
 
     survival = get_node_or_null("../../Systems/Survival") as OdysseySurvivalSystem
     weather = get_node_or_null("../../Systems/Weather") as OdysseyWeatherSystem
 
-    message_label = Label.new()
-    message_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-    message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-    message_label.add_theme_font_size_override("font_size", 17)
-    message_label.add_theme_color_override("font_color", Color(1, 0.96, 0.86, 1))
-    message_panel.add_child(message_label)
-
 func bind_player(value: Odysseus) -> void:
     player = value
+    art.player = value
 
 func bind_inventory(value: OdysseyInventory) -> void:
     inventory = value
+    art.inventory = value
 
-func _process(delta: float) -> void:
-    message_timer = maxf(0.0, message_timer - delta)
-    if message_timer <= 0.0 and message_label:
-        message_label.text = ""
-    if player and inventory and hud_label:
-        underwater_overlay.visible = player.underwater
-        hud_label.text = "THE ODYSSEY  •  THE SHORE\nWood %d   Stone %d   Rope %d   Stamina %d%%" % [
-            int(inventory.bulk.get("wood", 0)),
-            int(inventory.bulk.get("stone", 0)),
-            int(inventory.bulk.get("rope", 0)),
-            int(player.traversal.stamina)
-        ]
-        if survival:
-            hud_label.text += "\nFood %d   Warmth %d   Oxygen %d" % [int(survival.hunger), int(survival.warmth), int(survival.oxygen)]
-        if weather:
-            hud_label.text += "   Weather " + weather.condition_name().capitalize()
+func _process(_delta: float) -> void:
+    if not art or not player:
+        return
+    art.survival = survival
+    underwater_overlay.visible = player.underwater
 
 func _input(event: InputEvent) -> void:
     if event.is_action_pressed("map"):
         var map_ui := get_node_or_null("../MapLayer/MapUI") as OdysseyMapUI
         if map_ui:
             map_ui.toggle()
+            get_viewport().set_input_as_handled()
 
 func show_message(text: String, duration: float = 3.0) -> void:
-    if message_label:
-        message_label.text = text
-    message_timer = duration
+    if art:
+        art.message = text
+        art.message_time = duration
