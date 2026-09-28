@@ -254,7 +254,7 @@ func _select_tab(tab_name: String) -> void:
         return
     _active_tab = tab_name
     for i in tabs.size():
-        var selected := TAB_DEFINITIONS[i][0] == _active_tab
+        var selected: bool = TAB_DEFINITIONS[i][0] == _active_tab
         tabs[i].disabled = selected
     _refresh()
 
