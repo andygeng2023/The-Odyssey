@@ -4,6 +4,7 @@ extends Control
 signal interact_pressed
 signal action_pressed(action: String)
 signal camera_drag(delta: Vector2)
+signal backpack_pressed
 
 const JOYSTICK_RADIUS_RATIO: float = 0.105
 const JOYSTICK_DEADZONE: float = 0.14
@@ -12,6 +13,7 @@ const BUTTON_SIZE: float = 88.0
 const BUTTON_GAP: float = 14.0
 const CAMERA_START_X: float = 0.38
 const CAMERA_DRAG_THRESHOLD: float = 2.0
+const BACKPACK_SIZE: float = 74.0
 
 var move_vector: Vector2 = Vector2.ZERO
 var _move_touch: int = -1
@@ -38,7 +40,8 @@ func _button_rects() -> Dictionary:
     return {
         "jump": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE * 2.0 - BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE),
         "interact": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
-        "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE)
+        "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
+        "backpack": Rect2(right - BACKPACK_SIZE, 28.0, BACKPACK_SIZE, BACKPACK_SIZE)
     }
 
 func _button_at(point: Vector2) -> String:
@@ -55,6 +58,8 @@ func _is_camera_zone(point: Vector2) -> bool:
 func _emit_button(button: String) -> void:
     if button == "interact":
         interact_pressed.emit()
+    elif button == "backpack":
+        backpack_pressed.emit()
     else:
         action_pressed.emit(button)
 
@@ -138,4 +143,6 @@ func _draw() -> void:
         var r: float = rect.size.x * 0.46
         draw_circle(c, r, Color(0.025, 0.04, 0.07, 0.68))
         draw_arc(c, r, 0.0, TAU, 56, Color(0.95, 0.88, 0.68, 0.82), 3.0)
-        draw_string(ThemeDB.fallback_font, c + Vector2(-22.0, 6.0), id.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 44.0, 12, Color(1, 0.98, 0.90, 0.96))
+        var label_text: String = "BAG" if id == "backpack" else id.to_upper()
+        var label_width: float = 60.0 if id == "backpack" else 44.0
+        draw_string(ThemeDB.fallback_font, c + Vector2(-label_width * 0.5, 6.0), label_text, HORIZONTAL_ALIGNMENT_CENTER, label_width, 12, Color(1, 0.98, 0.90, 0.96))
