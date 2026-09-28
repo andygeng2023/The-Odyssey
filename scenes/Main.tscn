@@ -44,7 +44,7 @@ size = Vector3(240, 0.5, 150)
 albedo_color = Color(0.24, 0.42, 0.20, 1)
 roughness = 0.95
 [sub_resource type="BoxShape3D" id="GroundShape"]
-size = Vector3(100, 0.5, 54)
+size = Vector3(240, 0.5, 150)
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.08, 0.24, 0.55, 1)
 sky_horizon_color = Color(0.92, 0.83, 0.67, 1)
@@ -169,10 +169,11 @@ script = ExtResource("28")
 
 [node name="Player" type="CharacterBody3D" parent="."]
 position = Vector3(0, 0.88, 5)
-floor_snap_length = 0.28
+floor_snap_length = 0.42
 floor_stop_on_slope = true
-floor_max_angle = 1.047198
-safe_margin = 0.04
+floor_constant_speed = true
+floor_max_angle = 0.837758
+safe_margin = 0.035
 script = ExtResource("2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("PlayerCapsule")
