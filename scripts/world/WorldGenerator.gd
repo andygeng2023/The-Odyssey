@@ -562,14 +562,14 @@ func _speak_merchant(_node: Node, _player: Node = null) -> void:
     discovery.discover("merchant_contact", "civilization")
     var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
     if relationships:
-        relationships.modify_relationship("merchant", 5)
+        relationships.change("merchant", 5)
     _message("The merchant offers supplies and rumors. Cities turn exploration into relationships and choices.")
 
 func _speak_sailor(_node: Node, _player: Node = null) -> void:
     discovery.discover("sailor_contact", "civilization")
     var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
     if relationships:
-        relationships.modify_relationship("sailor", 5)
+        relationships.change("sailor", 5)
     _message("A sailor points toward deeper water and islands beyond the visible coast.")
 
 func _visit_shrine(_node: Node, _player: Node = null) -> void:
