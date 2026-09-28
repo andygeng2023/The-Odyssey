@@ -398,11 +398,9 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     var body := StaticBody3D.new()
     root.add_child(body)
     var shape := CollisionShape3D.new()
-    var collision := CylinderShape3D.new()
-    collision.radius = 0.95
-    collision.height = 2.0
+    var collision := BoxShape3D.new()
+    collision.size = Vector3(1.9 * scale.x, 2.0 * scale.y, 1.9 * scale.z)
     shape.shape = collision
-    shape.scale = scale
     body.add_child(shape)
 
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: bool) -> Node3D:
