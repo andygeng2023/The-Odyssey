@@ -36,7 +36,7 @@ func _notification(what: int) -> void:
         queue_redraw()
 
 func _create_action_buttons() -> void:
-    for id in ["jump", "interact", "sprint", "backpack", "map"]:
+    for id in ["jump", "interact", "action", "sprint", "backpack", "map"]:
         var button := Button.new()
         button.name = id.capitalize() + "Button"
         button.focus_mode = Control.FOCUS_NONE
@@ -93,9 +93,10 @@ func _button_rects() -> Dictionary:
     var bottom := size.y - margin
     var right := size.x - margin
     return {
-        "jump": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE * 2.0 - BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE),
+        "jump": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE * 3.0 - BUTTON_GAP * 2.0, BUTTON_SIZE, BUTTON_SIZE),
         "interact": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
-        "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
+        "action": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
+        "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE * 2.0 - BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE),
         "backpack": Rect2(right - BACKPACK_SIZE, 28.0, BACKPACK_SIZE, BACKPACK_SIZE),
         "map": Rect2(right - BACKPACK_SIZE * 2.0 - BUTTON_GAP, 28.0, MAP_SIZE, MAP_SIZE)
     }

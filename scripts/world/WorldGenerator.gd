@@ -308,6 +308,58 @@ func _make_interactable(pos: Vector3, node_name: String, action_name: String, ca
     node.position = pos
     node.add_to_group("odyssey_interactable")
     node.setup(action_name, callback)
+
+    # Every physical resource exposes capabilities to the systemic action layer.
+    # Story/merchant interactions remain contextual and do not become physical materials.
+    var world_object := OdysseyWorldObject.new()
+    world_object.name = "WorldObject"
+    world_object.display_title = node_name
+    world_object.mass = 2.0
+    match action_name:
+        "Harvest wood":
+            world_object.material_id = "wood"
+            world_object.quantity = 2
+            world_object.tags = ["harvest", "burn", "break"]
+            world_object.flammable = true
+            world_object.breakable = true
+            world_object.durability = 70.0
+        "Gather stone":
+            world_object.material_id = "stone"
+            world_object.quantity = 2
+            world_object.tags = ["harvest", "break"]
+            world_object.breakable = true
+            world_object.durability = 55.0
+        "Gather fiber":
+            world_object.material_id = "fiber"
+            world_object.quantity = 2
+            world_object.tags = ["harvest", "burn"]
+            world_object.flammable = true
+        "Gather herb":
+            world_object.material_id = "herb"
+            world_object.quantity = 2
+            world_object.tags = ["harvest"]
+        "Gather fruit":
+            world_object.material_id = "fruit"
+            world_object.quantity = 2
+            world_object.tags = ["harvest"]
+        "Gather shell":
+            world_object.material_id = "shell"
+            world_object.quantity = 1
+            world_object.tags = ["harvest", "break"]
+            world_object.breakable = true
+            world_object.durability = 25.0
+        "Gather flint":
+            world_object.material_id = "flint"
+            world_object.quantity = 1
+            world_object.tags = ["harvest", "break"]
+            world_object.breakable = true
+            world_object.durability = 35.0
+        _:
+            world_object = null
+
+    if world_object != null:
+        node.add_child(world_object)
+
     add_child(node)
     return node
 
