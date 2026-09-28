@@ -165,7 +165,7 @@ position = Vector3(0, 0.80, 5)
 scale = Vector3(0.72, 0.72, 0.72)
 floor_snap_length = 0.55
 floor_stop_on_slope = true
-floor_max_angle = 0.837758
+floor_max_angle = 1.047198
 safe_margin = 0.08
 script = ExtResource("2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
