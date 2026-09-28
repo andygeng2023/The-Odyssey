@@ -18,9 +18,9 @@ const GRAVITY := 22.0
 const SWIM_SPEED := 3.4
 const SWIM_SPRINT_SPEED := 4.8
 const SURFACE_HEIGHT := -0.04
-const FLOAT_HEIGHT := 0.62
-const UNDERWATER_DEPTH := 0.45
-const WATER_ENTRY_DEPTH := 0.55
+const SWIM_BODY_DEPTH := 0.42
+const UNDERWATER_DEPTH := 0.85
+const WATER_ENTRY_DEPTH := 0.45
 
 var climbing := false
 var swimming := false
@@ -32,6 +32,7 @@ var jump_velocity := 7.2
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
 var mobile_jump_requested := false
+var mobile_dive_requested := false
 var mobile_jump_buffer := 0.0
 var ground_speed := 0.0
 var _recovering := false
@@ -41,10 +42,11 @@ var _last_ground_y := 0.88
 
 func _ready() -> void:
     add_to_group("odyssey_player")
-    floor_snap_length = 0.28
+    floor_snap_length = 0.42
     floor_stop_on_slope = true
+    floor_constant_speed = true
     floor_max_angle = deg_to_rad(48.0)
-    safe_margin = 0.04
+    safe_margin = 0.035
     up_direction = Vector3.UP
     _visual_base_y = $Body.position.y
     water_volume = get_tree().get_first_node_in_group("water_volume") as OdysseyWaterVolume
@@ -67,7 +69,9 @@ func _physics_process(delta: float) -> void:
     var right := camera.global_transform.basis.x
     right.y = 0.0
     right = right.normalized()
-    var world_direction := (right * input_direction.x + forward * input_direction.y).normalized() if input_direction.length_squared() > 0.0 else Vector3.ZERO
+    var world_direction := Vector3.ZERO
+    if input_direction.length_squared() > 0.0:
+        world_direction = (right * input_direction.x + forward * input_direction.y).normalized()
 
     var in_water_volume := water_volume != null and water_volume.contains(global_position)
     var water_depth := water_volume.depth_at(global_position) if water_volume else 0.0
@@ -100,10 +104,12 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     var horizontal := Vector3(velocity.x, 0.0, velocity.z)
     var accel := GROUND_ACCEL if is_on_floor() else AIR_ACCEL
     var decel := GROUND_DECEL if is_on_floor() else AIR_DECEL
+
     if target_horizontal.length_squared() > 0.001:
         horizontal = horizontal.move_toward(target_horizontal, accel * delta)
     else:
         horizontal = horizontal.move_toward(Vector3.ZERO, decel * delta)
+
     velocity.x = horizontal.x
     velocity.z = horizontal.z
     ground_speed = horizontal.length()
@@ -115,19 +121,18 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
         mobile_jump_requested = false
         mobile_jump_buffer = 0.0
     else:
-        velocity.y = -0.35
+        velocity.y = -0.45
 
     if climbing:
         velocity.y = 2.2
+
     move_and_slide()
 
     if is_on_floor():
         _last_ground_y = global_position.y
         apply_floor_snap()
-    else:
-        var steep_surface := _find_steep_surface()
-        if steep_surface and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
-            climbing = true
+    elif _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
+        climbing = true
 
 func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) -> void:
     var target_speed := SWIM_SPRINT_SPEED if sprinting else SWIM_SPEED
@@ -138,30 +143,40 @@ func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) 
     velocity.z = horizontal.z
 
     var surface_y := water_volume.surface_height if water_volume else SURFACE_HEIGHT
-    var desired_y := surface_y - FLOAT_HEIGHT
+    var surface_body_y := surface_y - SWIM_BODY_DEPTH
+
     if underwater:
-        if Input.is_action_pressed("move_forward") and not mobile_controls:
-            velocity.y = move_toward(velocity.y, -1.2, 5.0 * delta)
-        else:
-            velocity.y = move_toward(velocity.y, 0.0, 7.0 * delta)
-        if Input.is_action_just_pressed("jump") or mobile_jump_requested:
-            velocity.y = 3.6
-            mobile_jump_requested = false
-            mobile_jump_buffer = 0.0
-        if global_position.y < -7.0:
-            velocity.y = maxf(velocity.y, 1.4)
+        var vertical_target := 0.0
+        if Input.is_action_pressed("move_back"):
+            vertical_target += 0.9
+        if Input.is_action_pressed("jump") or mobile_jump_requested:
+            vertical_target += 3.6
+        if mobile_dive_requested or Input.is_action_pressed("action"):
+            vertical_target -= 3.2
+        velocity.y = move_toward(velocity.y, vertical_target, 7.5 * delta)
+        mobile_jump_requested = false
+        mobile_dive_requested = false
+
+        if global_position.y < water_volume.bottom_height + 0.8:
+            velocity.y = maxf(velocity.y, 1.8)
     else:
-        velocity.y = move_toward(velocity.y, (desired_y - global_position.y) * 6.0, 12.0 * delta)
+        velocity.y = move_toward(velocity.y, (surface_body_y - global_position.y) * 7.0, 15.0 * delta)
         if Input.is_action_just_pressed("jump") or mobile_jump_requested:
             velocity.y = 3.8
             mobile_jump_requested = false
             mobile_jump_buffer = 0.0
+        if mobile_dive_requested or Input.is_action_just_pressed("action"):
+            velocity.y = -3.0
+            mobile_dive_requested = false
 
     move_and_slide()
 
-    if not underwater and global_position.y < desired_y - 0.25:
-        global_position.y = desired_y
-        velocity.y = 0.0
+    if not underwater:
+        if global_position.y < surface_body_y - 0.24:
+            global_position.y = surface_body_y
+            velocity.y = maxf(0.0, velocity.y)
+        elif global_position.y > surface_body_y + 0.40:
+            velocity.y = minf(velocity.y, -0.6)
 
 func _find_steep_surface() -> bool:
     for i in get_slide_collision_count():
@@ -183,12 +198,15 @@ func _animate_character(delta: float, moving: bool) -> void:
     var right_leg := $RightLeg as MeshInstance3D
     if body == null or head == null:
         return
+
     var stride: float = sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
     var bob: float = abs(stride) * 0.035 if moving else sin(_visual_time * 2.2) * 0.012
     body.position.y = _visual_base_y + bob
     head.position.y = 1.64 + bob * 0.7
-    if cloak:
+
+    if is_instance_valid(cloak):
         cloak.rotation_degrees.z = sin(_visual_time * 5.0) * (2.5 if moving else 0.8)
+
     if moving:
         left_arm.rotation_degrees.z = 10.0 + stride * 12.0
         right_arm.rotation_degrees.z = -10.0 - stride * 12.0
@@ -228,7 +246,10 @@ func handle_mobile_action(action: String) -> void:
             mobile_jump_buffer = 0.28
         "action":
             if swimming:
-                velocity.y = -2.8
+                mobile_dive_requested = true
+            else:
+                mobile_jump_requested = true
+                mobile_jump_buffer = 0.28
         "sprint":
             mobile_sprint = not mobile_sprint
 
