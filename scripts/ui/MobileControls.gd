@@ -118,9 +118,6 @@ func _on_button_pressed(button: String) -> void:
             map_ui.toggle()
         return
     if button == "backpack":
-        var backpack_ui := get_node_or_null("../../BackpackLayer/BackpackUI") as OdysseyBackpackUI
-        if backpack_ui:
-            backpack_ui.toggle()
         backpack_pressed.emit()
         return
     if button == "interact":
