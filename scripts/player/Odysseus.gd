@@ -31,7 +31,12 @@ const SWIM_ACCEL := 8.0
 const SWIM_DRAG := 3.2
 const WATER_BUOYANCY := 5.5
 const WATER_SURFACE_SPRING := 9.0
+const CLIMB_FOOT_HEIGHT := 0.34
+const CLIMB_HAND_HEIGHT := 1.18
 
+enum TraversalState { GROUNDED, AIRBORNE, STEP_UP, CLIMBING, SWIM_SURFACE, SWIM_UNDERWATER }
+
+var traversal_state: TraversalState = TraversalState.GROUNDED
 var climbing := false
 var swimming := false
 var underwater := false
@@ -98,6 +103,8 @@ func _physics_process(delta: float) -> void:
     else:
         _physics_ground(delta, world_direction, current_speed)
 
+    _update_traversal_state()
+
     traversal.tick(delta, climbing, swimming)
     if survival:
         survival.set_weather(weather.condition_name() if weather else "clear")
@@ -125,6 +132,7 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     ground_speed = horizontal.length()
 
     if climbing:
+        traversal_state = TraversalState.CLIMBING
         velocity.y = CLIMB_UP_SPEED
     elif not is_on_floor():
         velocity.y -= GRAVITY * delta
@@ -136,7 +144,8 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
         velocity.y = -0.45
 
     if is_on_floor() and not climbing and horizontal.length_squared() > 0.01:
-        _attempt_step_up(horizontal * delta)
+        if _attempt_step_up(horizontal * delta):
+            traversal_state = TraversalState.STEP_UP
 
     move_and_slide()
 
@@ -144,10 +153,14 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
         _last_ground_y = global_position.y
         apply_floor_snap()
 
-    if not climbing and _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
+    if not climbing and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal() and _should_start_climbing(world_direction):
         climbing = true
+        traversal_state = TraversalState.CLIMBING
+    elif not climbing:
+        traversal_state = TraversalState.GROUNDED if is_on_floor() else TraversalState.AIRBORNE
 
 func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) -> void:
+    traversal_state = TraversalState.SWIM_UNDERWATER if underwater else TraversalState.SWIM_SURFACE
     var target_speed := SWIM_SPRINT_SPEED if sprinting else SWIM_SPEED
     var target := world_direction * target_speed
     var horizontal := Vector3(velocity.x, 0.0, velocity.z)
@@ -192,50 +205,87 @@ func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) 
 
     move_and_slide()
 
-func _attempt_step_up(horizontal_motion: Vector3) -> void:
+func _attempt_step_up(horizontal_motion: Vector3) -> bool:
     if horizontal_motion.length() > STEP_CHECK_DISTANCE:
         horizontal_motion = horizontal_motion.normalized() * STEP_CHECK_DISTANCE
     if horizontal_motion.length_squared() < 0.0001:
-        return
+        return false
 
     var collision := KinematicCollision3D.new()
-    if not test_move(global_transform, horizontal_motion, collision, 0.025, false):
-        return
+    if not test_move(global_transform, horizontal_motion, collision, 0.02, false):
+        return false
+
+    var hit_normal := collision.get_normal()
+    var hit_angle := rad_to_deg(acos(clampf(hit_normal.dot(Vector3.UP), -1.0, 1.0)))
+    if hit_angle < 8.0 or hit_angle > 56.0:
+        return false
 
     var raised := global_transform
     raised.origin += Vector3.UP * STEP_HEIGHT
-    if test_move(raised, horizontal_motion, null, 0.025, false):
-        return
+    if test_move(raised, horizontal_motion, null, 0.02, false):
+        return false
 
     var landing := KinematicCollision3D.new()
-    if not test_move(raised, Vector3.DOWN * (STEP_HEIGHT + 0.12), landing, 0.025, false):
-        return
+    if not test_move(raised, Vector3.DOWN * (STEP_HEIGHT + 0.16), landing, 0.02, false):
+        return false
 
     global_transform = raised
     velocity.y = 0.0
+    return true
 
 func _detect_auto_climb(world_direction: Vector3) -> bool:
     if world_direction.length_squared() < 0.01:
         return false
 
+    var direction := world_direction.normalized()
     var space := get_world_3d().direct_space_state
-    var origin := global_position + Vector3.UP * 0.82
-    var to := origin + world_direction.normalized() * CLIMB_DETECT_DISTANCE
-    var query := PhysicsRayQueryParameters3D.create(origin, to, 1)
-    query.exclude = [get_rid()]
-    var hit := space.intersect_ray(query)
-    if hit.is_empty():
+    var lower_origin := global_position + Vector3.UP * CLIMB_FOOT_HEIGHT
+    var upper_origin := global_position + Vector3.UP * CLIMB_HAND_HEIGHT
+    var lower_to := lower_origin + direction * CLIMB_DETECT_DISTANCE
+    var upper_to := upper_origin + direction * CLIMB_DETECT_DISTANCE
+
+    var lower_query := PhysicsRayQueryParameters3D.create(lower_origin, lower_to, 1)
+    lower_query.exclude = [get_rid()]
+    var lower_hit := space.intersect_ray(lower_query)
+    if lower_hit.is_empty():
         return false
 
-    var normal: Vector3 = hit.normal
+    var normal: Vector3 = lower_hit.normal
     var angle := rad_to_deg(acos(clampf(normal.dot(Vector3.UP), -1.0, 1.0)))
-    return angle > 48.0 and angle <= CLIMB_MAX_ANGLE and traversal.can_continue_traversal()
+    if angle <= 48.0 or angle > CLIMB_MAX_ANGLE:
+        return false
+
+    var upper_query := PhysicsRayQueryParameters3D.create(upper_origin, upper_to, 1)
+    upper_query.exclude = [get_rid()]
+    var upper_hit := space.intersect_ray(upper_query)
+    if not upper_hit.is_empty():
+        var upper_normal: Vector3 = upper_hit.normal
+        var upper_angle := rad_to_deg(acos(clampf(upper_normal.dot(Vector3.UP), -1.0, 1.0)))
+        if upper_angle > CLIMB_MAX_ANGLE:
+            return false
+
+    return traversal.can_continue_traversal()
+
+func _should_start_climbing(world_direction: Vector3) -> bool:
+    return _detect_auto_climb(world_direction) or _find_steep_surface()
+
+func _update_traversal_state() -> void:
+    if swimming:
+        traversal_state = TraversalState.SWIM_UNDERWATER if underwater else TraversalState.SWIM_SURFACE
+    elif climbing:
+        traversal_state = TraversalState.CLIMBING
+    elif is_on_floor():
+        if traversal_state != TraversalState.STEP_UP:
+            traversal_state = TraversalState.GROUNDED
+    else:
+        traversal_state = TraversalState.AIRBORNE
 
 func teleport_to(destination: Vector3) -> void:
     velocity = Vector3.ZERO
     climbing = false
     swimming = false
     underwater = false
+    traversal_state = TraversalState.GROUNDED
     mobile_jump_requested = false
     mobile_dive_requested = false
 
