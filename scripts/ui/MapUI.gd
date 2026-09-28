@@ -221,7 +221,7 @@ func _fast_travel(id: String) -> void:
     player.global_position = Vector3(destination.x, destination.y + 1.05, destination.z)
     close_map()
 
-    var hud := get_node_or_null("../GameHUD") as OdysseyGameHUD
+    var hud := get_node_or_null("../../GameHUD") as OdysseyGameHUD
     if hud:
         hud.show_message("Travelled to " + str(discovery.landmarks[id].title) + ".", 3.0)
 
@@ -243,7 +243,7 @@ func open_map() -> void:
     _build()
     panel.visible = true
     _refresh("")
-    var controls := get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
+    var controls := get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.set_overlay_active(true)
 
