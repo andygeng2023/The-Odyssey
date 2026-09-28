@@ -91,6 +91,11 @@ height = 0.78
 [sub_resource type="SphereMesh" id="ShoulderMesh"]
 radius = 0.15
 height = 0.30
+[sub_resource type="CapsuleMesh" id="LegMesh"]
+radius = 0.13
+height = 0.95
+[sub_resource type="BoxMesh" id="FootMesh"]
+size = Vector3(0.28, 0.16, 0.58)
 [sub_resource type="CylinderMesh" id="HelmetMesh"]
 top_radius = 0.25
 bottom_radius = 0.34
@@ -186,6 +191,22 @@ material_override = SubResource("BronzeMaterial")
 [node name="Belt" type="MeshInstance3D" parent="Player"]
 position = Vector3(0, 0.72, 0)
 mesh = SubResource("BeltMesh")
+material_override = SubResource("PlayerCloakMaterial")
+[node name="LeftLeg" type="MeshInstance3D" parent="Player"]
+position = Vector3(-0.22, 0.40, 0)
+mesh = SubResource("LegMesh")
+material_override = SubResource("PlayerSkinMaterial")
+[node name="RightLeg" type="MeshInstance3D" parent="Player"]
+position = Vector3(0.22, 0.40, 0)
+mesh = SubResource("LegMesh")
+material_override = SubResource("PlayerSkinMaterial")
+[node name="LeftFoot" type="MeshInstance3D" parent="Player"]
+position = Vector3(-0.22, 0.06, -0.12)
+mesh = SubResource("FootMesh")
+material_override = SubResource("PlayerCloakMaterial")
+[node name="RightFoot" type="MeshInstance3D" parent="Player"]
+position = Vector3(0.22, 0.06, -0.12)
+mesh = SubResource("FootMesh")
 material_override = SubResource("PlayerCloakMaterial")
 [node name="LeftArm" type="MeshInstance3D" parent="Player"]
 position = Vector3(-0.52, 1.05, 0)
