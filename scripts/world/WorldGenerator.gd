@@ -54,22 +54,24 @@ func _make_water() -> void:
     var shader := Shader.new()
     shader.code = """
 shader_type spatial;
-render_mode blend_mix, cull_disabled;
-uniform vec4 water_color : source_color = vec4(0.035, 0.32, 0.48, 0.82);
-uniform float wave_height = 0.10;
-uniform float wave_scale = 0.22;
+render_mode blend_mix, cull_disabled, depth_draw_alpha_prepass;
+uniform vec4 water_color : source_color = vec4(0.035, 0.38, 0.54, 0.88);
+uniform float wave_height = 0.085;
+uniform float wave_scale = 0.18;
 void vertex() {
-    float wave_a = sin(VERTEX.x * wave_scale + TIME * 0.75);
-    float wave_b = cos(VERTEX.z * wave_scale * 1.7 + TIME * 0.52);
-    VERTEX.y += (wave_a + wave_b) * wave_height * 0.5;
+    float wave_a = sin(VERTEX.x * wave_scale + TIME * 0.72);
+    float wave_b = cos(VERTEX.z * wave_scale * 1.65 + TIME * 0.48);
+    float wave_c = sin((VERTEX.x + VERTEX.z) * 0.11 + TIME * 0.32);
+    VERTEX.y += (wave_a * 0.55 + wave_b * 0.30 + wave_c * 0.15) * wave_height;
 }
 void fragment() {
-    float shimmer = 0.08 * sin(UV.x * 80.0 + TIME * 1.5);
-    float wave_line = 0.5 + 0.5 * sin(UV.y * 45.0 + TIME * 0.8 + UV.x * 12.0);
-    float foam = smoothstep(0.76, 0.98, wave_line) * 0.12;
-    ALBEDO = water_color.rgb + vec3(shimmer + foam * 0.8, shimmer + foam, shimmer * 0.8 + foam);
-    ROUGHNESS = 0.10;
-    METALLIC = 0.08;
+    float ripple_a = 0.5 + 0.5 * sin(UV.x * 62.0 + UV.y * 24.0 + TIME * 1.2);
+    float ripple_b = 0.5 + 0.5 * cos(UV.y * 78.0 - TIME * 0.75);
+    float sparkle = pow(max(ripple_a * ripple_b, 0.0), 5.0) * 0.18;
+    vec3 deep = water_color.rgb * (0.82 + ripple_a * 0.10);
+    ALBEDO = deep + vec3(sparkle * 0.65, sparkle, sparkle * 0.72);
+    ROUGHNESS = 0.07;
+    METALLIC = 0.12;
     ALPHA = water_color.a;
 }
 """
@@ -88,7 +90,7 @@ void fragment() {
     add_child(volume)
 
 func _make_terrain() -> void:
-    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.1, 18), Color(0.82, 0.70, 0.50, 1), false)
+    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.12, 18), Color(0.82, 0.70, 0.50, 1), true)
     _make_landform("HillWest", Vector3(-23, 1.9, 10), Vector3(20, 3.8, 15), Color(0.20, 0.34, 0.18, 1))
     _make_landform("HillWestRidge", Vector3(-14, 2.6, 17), Vector3(13, 5.2, 9), Color(0.25, 0.39, 0.20, 1))
     _make_landform("HillEast", Vector3(23, 1.5, 13), Vector3(18, 3.0, 18), Color(0.24, 0.39, 0.19, 1))
