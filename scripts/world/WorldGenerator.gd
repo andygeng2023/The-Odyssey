@@ -201,6 +201,9 @@ func _make_city(pos: Vector3) -> void:
     for x in [-4.0, 0.0, 4.0]:
         _make_house(root, Vector3(x, 0, 0), 3.0)
     _make_box_child(root, "Gate", Vector3(0, 2.2, -4), Vector3(10, 4.4, 1), Color(0.72, 0.62, 0.43, 1))
+    _make_box_child(root, "Plaza", Vector3(0, 0.12, 3), Vector3(12, 0.24, 8), Color(0.62, 0.53, 0.39, 1))
+    _make_interactable(pos + Vector3(-4,0.8,3), "Merchant", "Speak with merchant", _speak_merchant)
+    _make_interactable(pos + Vector3(4,0.8,3), "Sailor", "Speak with sailor", _speak_sailor)
     _make_interactable(pos + Vector3(0,0,-5.5), "City gate", "Enter Aegean city", _enter_city)
     discovery.register_landmark("aegean_city", "Aegean City", pos, "civilization")
 
@@ -554,6 +557,20 @@ func _survey_coast(_node: Node, _player: Node = null) -> void:
 func _enter_city(_node: Node, _player: Node = null) -> void:
     discovery.discover("aegean_city", "civilization")
     _message("Aegean city discovered: merchants, craftsmen, sailors and relationships are coming online.")
+
+func _speak_merchant(_node: Node, _player: Node = null) -> void:
+    discovery.discover("merchant_contact", "civilization")
+    var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
+    if relationships:
+        relationships.modify_relationship("merchant", 5)
+    _message("The merchant offers supplies and rumors. Cities turn exploration into relationships and choices.")
+
+func _speak_sailor(_node: Node, _player: Node = null) -> void:
+    discovery.discover("sailor_contact", "civilization")
+    var relationships := get_parent().get_node_or_null("Systems/Relationships") as OdysseyRelationshipSystem
+    if relationships:
+        relationships.modify_relationship("sailor", 5)
+    _message("A sailor points toward deeper water and islands beyond the visible coast.")
 
 func _visit_shrine(_node: Node, _player: Node = null) -> void:
     discovery.discover("athena_shrine", "mythology")
