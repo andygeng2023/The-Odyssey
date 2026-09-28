@@ -15,6 +15,7 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
     _make_water()
     _register_landmarks()
     _make_terrain()
+    _make_expansive_regions()
     for p in [Vector3(-12,0,5), Vector3(-7,0,11), Vector3(-2,0,7), Vector3(5,0,14), Vector3(17,0,4), Vector3(-28,0,14), Vector3(28,0,14)]:
         _make_tree(p)
     for p in [Vector3(-20,0,3), Vector3(-16,0,8), Vector3(13,0,18), Vector3(22,0,10), Vector3(2,0,22), Vector3(-30,0,8)]:
@@ -46,11 +47,11 @@ func _make_water() -> void:
     var water := MeshInstance3D.new()
     water.name = "Sea"
     var mesh := PlaneMesh.new()
-    mesh.size = Vector2(120, 60)
+    mesh.size = Vector2(220, 110)
     mesh.subdivide_width = 24
     mesh.subdivide_depth = 12
     water.mesh = mesh
-    water.position = Vector3(0, -0.04, -25)
+    water.position = Vector3(0, -0.04, -28)
     var shader := Shader.new()
     shader.code = """
 shader_type spatial;
@@ -81,24 +82,73 @@ void fragment() {
     add_child(water)
     var volume := OdysseyWaterVolume.new()
     volume.name = "WaterVolume"
-    volume.position = Vector3(0, -2.5, -25)
+    volume.position = Vector3(0, -3.0, -28)
     var shape := CollisionShape3D.new()
     var box := BoxShape3D.new()
-    box.size = Vector3(100, 8, 60)
+    box.size = Vector3(220, 10, 110)
     shape.shape = box
     volume.add_child(shape)
     add_child(volume)
 
 func _make_terrain() -> void:
-    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(100, 0.12, 18), Color(0.82, 0.70, 0.50, 1), true)
-    _make_landform("HillWest", Vector3(-23, 1.9, 10), Vector3(20, 3.8, 15), Color(0.20, 0.34, 0.18, 1))
-    _make_landform("HillWestRidge", Vector3(-14, 2.6, 17), Vector3(13, 5.2, 9), Color(0.25, 0.39, 0.20, 1))
-    _make_landform("HillEast", Vector3(23, 1.5, 13), Vector3(18, 3.0, 18), Color(0.24, 0.39, 0.19, 1))
-    _make_landform("HillEastRidge", Vector3(14, 2.2, 20), Vector3(12, 4.4, 10), Color(0.29, 0.43, 0.21, 1))
-    _make_landform("Cliff", Vector3(0, 2.3, 28), Vector3(72, 4.6, 8), Color(0.32, 0.31, 0.27, 1))
-    _make_box("CliffFace", Vector3(0, 1.15, 24), Vector3(72, 2.3, 1.2), Color(0.22, 0.24, 0.23, 1), true)
-    for x in [-30.0, -22.0, -14.0, -5.0, 5.0, 14.0, 23.0, 31.0]:
-        _make_landform("RockOutcrop", Vector3(x, 0.65, 19.0 + sin(x) * 2.0), Vector3(3.2, 1.3, 2.4), Color(0.40, 0.39, 0.34, 1))
+    _make_box("Beach", Vector3(0, 0.03, -8), Vector3(240, 0.12, 20), Color(0.82, 0.70, 0.50, 1), true)
+
+    # A broad playable surface replaces the old tiny sandbox. The inland floor is
+    # deliberately simple and reliable; raised landforms provide the visual relief.
+    for x in range(-108, 109, 18):
+        var dune_z := 8.0 + sin(float(x) * 0.07) * 5.0
+        var dune_h := 1.4 + absf(sin(float(x) * 0.11)) * 1.5
+        _make_landform("CoastalDune", Vector3(float(x), dune_h * 0.5, dune_z), Vector3(8.0, dune_h * 0.5, 6.0), Color(0.34, 0.43, 0.23, 1))
+
+    for x in range(-96, 97, 24):
+        for z in range(26, 111, 28):
+            var wave := sin(float(x) * 0.055 + float(z) * 0.031)
+            var ridge := cos(float(z) * 0.073 - float(x) * 0.021)
+            var h := 2.0 + (wave + ridge + 2.0) * 1.35
+            var width := 8.5 + (1.0 + sin(float(x + z) * 0.09)) * 2.0
+            var depth := 8.0 + (1.0 + cos(float(x - z) * 0.07)) * 2.0
+            _make_landform("InlandRise", Vector3(float(x), h * 0.5, float(z)), Vector3(width, h * 0.5, depth), Color(0.20 + h * 0.012, 0.34 + h * 0.010, 0.18, 1))
+
+    # A broken mountain spine gives the world a visible destination from far away.
+    for x in range(-84, 85, 28):
+        var mountain_h := 7.0 + absf(sin(float(x) * 0.08)) * 5.0
+        _make_landform("MountainSpine", Vector3(float(x), mountain_h * 0.5, 96), Vector3(12.0, mountain_h * 0.5, 9.0), Color(0.27, 0.29, 0.26, 1))
+
+    for x in range(-108, 109, 27):
+        _make_rock(Vector3(float(x), 0.0, 34.0 + sin(float(x) * 0.13) * 6.0))
+
+func _make_expansive_regions() -> void:
+    # Original procedural landmarks distributed across the larger world.
+    var regions := [
+        [Vector3(-88, 0, 58), "WESTERN GROVE", "western_grove"],
+        [Vector3(-38, 0, 76), "HILL COUNTRY", "hill_country"],
+        [Vector3(18, 0, 62), "OLIVE VALLEY", "olive_valley"],
+        [Vector3(74, 0, 78), "EASTERN RIDGE", "eastern_ridge"],
+        [Vector3(-72, 0, 104), "HIGH PASS", "high_pass"],
+        [Vector3(56, 0, 104), "MOUNTAIN PASS", "mountain_pass"]
+    ]
+    for data in regions:
+        var pos: Vector3 = data[0]
+        var title: String = data[1]
+        var id: String = data[2]
+        var root := Node3D.new()
+        root.name = id
+        root.position = pos
+        add_child(root)
+        _label(root, title, Vector3(0, 7.0, 0))
+        for i in range(5):
+            var px := float(i - 2) * 6.0
+            var pz := sin(float(i) * 1.7) * 6.0
+            _make_tree_child(root, Vector3(px, 0, pz))
+        _make_box_child(root, "Plinth", Vector3(0, 0.16, 0), Vector3(8, 0.32, 6), Color(0.57, 0.49, 0.35, 1))
+        discovery.register_landmark(id, title, pos, "mainland")
+
+    # Long-form paths make the large scale readable without turning the world into
+    # a collection of isolated rooms.
+    for z in [18.0, 44.0, 70.0, 96.0]:
+        _make_box("AncientRoad", Vector3(0, 0.04, z), Vector3(210, 0.08, 2.4), Color(0.48, 0.41, 0.31, 1), false)
+    for x in [-70.0, 0.0, 70.0]:
+        _make_box("AncientRoad", Vector3(x, 0.05, 57), Vector3(2.4, 0.10, 82), Color(0.48, 0.41, 0.31, 1), false)
 
 func _make_resource_patch(pos: Vector3, title: String, resource_id: String, amount: int) -> void:
     var root := _make_interactable(pos, title, "Gather " + resource_id, _gather_resource.bind(resource_id, amount))
