@@ -93,8 +93,8 @@ func _animate_character(delta: float, moving: bool) -> void:
     var right_leg := $RightLeg as MeshInstance3D
     if body == null or head == null:
         return
-    var stride := sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
-    var bob := abs(stride) * 0.045 if moving else sin(_visual_time * 2.2) * 0.018
+    var stride: float = sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
+    var bob: float = abs(stride) * 0.045 if moving else sin(_visual_time * 2.2) * 0.018
     body.position.y = _visual_base_y + bob
     head.position.y = 1.78 + bob * 0.7
     if cloak:
