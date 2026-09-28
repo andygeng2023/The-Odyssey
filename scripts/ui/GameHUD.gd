@@ -8,6 +8,7 @@ var player: Odysseus
 var inventory: OdysseyInventory
 var survival: OdysseySurvivalSystem
 var weather: OdysseyWeatherSystem
+var underwater_overlay: ColorRect
 
 func _ready() -> void:
     var panel := Panel.new()
@@ -46,6 +47,14 @@ func _ready() -> void:
     message_style.set_border_width_all(2)
     message_style.set_corner_radius_all(16)
     message_panel.add_theme_stylebox_override("panel", message_style)
+
+    underwater_overlay = ColorRect.new()
+    underwater_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+    underwater_overlay.color = Color(0.02, 0.18, 0.30, 0.30)
+    underwater_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    underwater_overlay.visible = false
+    add_child(underwater_overlay)
+    move_child(underwater_overlay, 0)
     add_child(message_panel)
 
     survival = get_node_or_null("../../Systems/Survival") as OdysseySurvivalSystem
@@ -70,6 +79,7 @@ func _process(delta: float) -> void:
     if message_timer <= 0.0 and message_label:
         message_label.text = ""
     if player and inventory and hud_label:
+        underwater_overlay.visible = player.underwater
         hud_label.text = "THE ODYSSEY  •  THE SHORE\nWood %d   Stone %d   Rope %d   Stamina %d%%" % [
             int(inventory.bulk.get("wood", 0)),
             int(inventory.bulk.get("stone", 0)),
