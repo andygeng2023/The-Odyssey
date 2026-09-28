@@ -29,8 +29,8 @@
 [ext_resource path="res://scripts/ui/BackpackUI.gd" type="Script" id="22"]
 
 [sub_resource type="CapsuleShape3D" id="PlayerCapsule"]
-radius = 0.45
-height = 2.2
+radius = 0.38
+height = 1.75
 [sub_resource type="CapsuleMesh" id="BodyMesh"]
 radius = 0.42
 height = 1.35
@@ -38,12 +38,12 @@ height = 1.35
 radius = 0.34
 height = 0.68
 [sub_resource type="BoxMesh" id="GroundMesh"]
-size = Vector3(100, 0.5, 75)
+size = Vector3(100, 0.5, 54)
 [sub_resource type="StandardMaterial3D" id="GroundMaterial"]
 albedo_color = Color(0.24, 0.42, 0.20, 1)
 roughness = 0.95
 [sub_resource type="BoxShape3D" id="GroundShape"]
-size = Vector3(100, 0.5, 75)
+size = Vector3(100, 0.5, 54)
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
 sky_top_color = Color(0.12, 0.30, 0.58, 1)
 sky_horizon_color = Color(0.84, 0.86, 0.82, 1)
@@ -54,15 +54,15 @@ sun_angle_max = 8.0
 sky_material = SubResource("SkyMaterial")
 [sub_resource type="Environment" id="Environment"]
 background_mode = 2
-background_energy_multiplier = 1.12
+background_energy_multiplier = 1.18
 fog_enabled = true
 fog_light_color = Color(0.72, 0.78, 0.78, 1)
 fog_light_energy = 0.55
-fog_density = 0.0022
+fog_density = 0.00135
 fog_sky_affect = 0.22
 ambient_light_source = 3
 ambient_light_color = Color(0.76, 0.82, 0.90, 1)
-ambient_light_energy = 1.05
+ambient_light_energy = 1.20
 tonemap_mode = 2
 tonemap_exposure = 1.08
 glow_enabled = true
@@ -164,9 +164,8 @@ script = ExtResource("27")
 script = ExtResource("19")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 0.80, 5)
-scale = Vector3(0.72, 0.72, 0.72)
-floor_snap_length = 0.55
+position = Vector3(0, 0.88, 5)
+floor_snap_length = 0.28
 floor_stop_on_slope = true
 floor_max_angle = 1.047198
 safe_margin = 0.08
@@ -174,76 +173,76 @@ script = ExtResource("2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("PlayerCapsule")
 [node name="Body" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 0.9, 0)
+position = Vector3(0, 0.78, 0)
 mesh = SubResource("BodyMesh")
 material_override = SubResource("PlayerBodyMaterial")
 [node name="Head" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 1.78, 0)
+position = Vector3(0, 1.64, 0)
 mesh = SubResource("HeadMesh")
 material_override = SubResource("PlayerSkinMaterial")
 [node name="Tunic" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 0.92, 0)
+position = Vector3(0, 0.82, 0)
 mesh = SubResource("TunicMesh")
 material_override = SubResource("PlayerTunicMaterial")
 [node name="Cloak" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 1.05, 0.20)
+position = Vector3(0, 0.94, 0.20)
 scale = Vector3(0.82, 0.95, 0.55)
 mesh = SubResource("BodyMesh")
 material_override = SubResource("PlayerCloakMaterial")
 [node name="Hair" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 2.02, -0.01)
+position = Vector3(0, 1.88, -0.01)
 mesh = SubResource("HairMesh")
 material_override = SubResource("PlayerHairMaterial")
 [node name="Helmet" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 2.18, 0)
+position = Vector3(0, 2.02, 0)
 mesh = SubResource("HelmetMesh")
 material_override = SubResource("BronzeMaterial")
 [node name="Shield" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.62, 1.05, 0.10)
+position = Vector3(-0.54, 0.94, 0.10)
 rotation_degrees = Vector3(0, 0, 7)
 mesh = SubResource("ShieldMesh")
 material_override = SubResource("ShieldMaterial")
 [node name="ShieldBoss" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.62, 1.05, 0.18)
+position = Vector3(-0.54, 0.94, 0.18)
 mesh = SubResource("ShoulderMesh")
 scale = Vector3(0.75, 0.75, 0.5)
 material_override = SubResource("BronzeMaterial")
 [node name="Belt" type="MeshInstance3D" parent="Player"]
-position = Vector3(0, 0.72, 0)
+position = Vector3(0, 0.64, 0)
 mesh = SubResource("BeltMesh")
 material_override = SubResource("PlayerCloakMaterial")
 [node name="LeftLeg" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.22, 0.40, 0)
+position = Vector3(-0.20, 0.39, 0)
 mesh = SubResource("LegMesh")
 material_override = SubResource("PlayerSkinMaterial")
 [node name="RightLeg" type="MeshInstance3D" parent="Player"]
-position = Vector3(0.22, 0.40, 0)
+position = Vector3(0.20, 0.39, 0)
 mesh = SubResource("LegMesh")
 material_override = SubResource("PlayerSkinMaterial")
 [node name="LeftFoot" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.22, 0.06, -0.12)
+position = Vector3(-0.20, 0.05, -0.12)
 mesh = SubResource("FootMesh")
 material_override = SubResource("PlayerCloakMaterial")
 [node name="RightFoot" type="MeshInstance3D" parent="Player"]
-position = Vector3(0.22, 0.06, -0.12)
+position = Vector3(0.20, 0.05, -0.12)
 mesh = SubResource("FootMesh")
 material_override = SubResource("PlayerCloakMaterial")
 [node name="LeftArm" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.52, 1.05, 0)
+position = Vector3(-0.46, 0.94, 0)
 rotation_degrees = Vector3(0, 0, 10)
 mesh = SubResource("LimbMesh")
 material_override = SubResource("PlayerSkinMaterial")
 [node name="RightArm" type="MeshInstance3D" parent="Player"]
-position = Vector3(0.52, 1.05, 0)
+position = Vector3(0.46, 0.94, 0)
 rotation_degrees = Vector3(0, 0, -10)
 mesh = SubResource("LimbMesh")
 material_override = SubResource("PlayerSkinMaterial")
 [node name="LeftShoulder" type="MeshInstance3D" parent="Player"]
-position = Vector3(-0.43, 1.45, 0)
+position = Vector3(-0.40, 1.30, 0)
 mesh = SubResource("ShoulderMesh")
 material_override = SubResource("PlayerTunicMaterial")
 [node name="RightShoulder" type="MeshInstance3D" parent="Player"]
-position = Vector3(0.43, 1.45, 0)
+position = Vector3(0.40, 1.30, 0)
 mesh = SubResource("ShoulderMesh")
 material_override = SubResource("PlayerTunicMaterial")
 [node name="Inventory" type="Node" parent="Player"]
@@ -255,13 +254,13 @@ script = ExtResource("5")
 script = ExtResource("3")
 target_path = NodePath("../Player")
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
-spring_length = 4.6
+spring_length = 4.25
 margin = 0.35
 collision_mask = 1
 [node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
-position = Vector3(1.00, 0.28, 0.0)
+position = Vector3(0.82, 0.22, 0.0)
 current = true
-fov = 62.0
+fov = 64.0
 near = 0.05
 far = 350.0
 
@@ -269,13 +268,13 @@ far = 350.0
 environment = SubResource("Environment")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-48, -28, 0)
-light_energy = 1.9
+light_energy = 2.25
 shadow_enabled = true
-directional_shadow_max_distance = 100.0
+directional_shadow_max_distance = 85.0
 directional_shadow_fade_start = 0.75
 
 [node name="Ground" type="StaticBody3D" parent="."]
-position = Vector3(0, -0.25, 17.5)
+position = Vector3(0, -0.25, 28.0)
 [node name="Mesh" type="MeshInstance3D" parent="Ground"]
 mesh = SubResource("GroundMesh")
 material_override = SubResource("GroundMaterial")
