@@ -12,6 +12,7 @@ extends Node3D
 @onready var map_ui: OdysseyMapUI = $UI/MapLayer/MapUI
 @onready var weather: OdysseyWeatherSystem = $Systems/Weather
 @onready var systemic_actions: OdysseySystemicActionSystem = $Systems/SystemicActions
+@onready var visual_polish: OdysseyVisualPolish = $VisualPolish
 
 func _ready() -> void:
 	inventory.add_material("wood", 4)
