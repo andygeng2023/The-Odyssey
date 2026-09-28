@@ -220,8 +220,11 @@ func _make_item_row(entry: Dictionary) -> Control:
 
     var name_label := Label.new()
     name_label.text = str(entry.get("name", "Item"))
-    name_label.position = Vector2(18, 10)
-    name_label.size = Vector2(360, 25)
+    name_label.position = Vector2(18, 8)
+    name_label.size = Vector2(0, 25)
+    name_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+    name_label.anchor_right = 0.55
+    name_label.offset_right = -8.0
     name_label.add_theme_font_size_override("font_size", 17)
     name_label.add_theme_color_override("font_color", Color(0.93, 0.88, 0.75, 1))
     row.add_child(name_label)
@@ -229,15 +232,23 @@ func _make_item_row(entry: Dictionary) -> Control:
     var description := Label.new()
     description.text = str(entry.get("description", ""))
     description.position = Vector2(18, 36)
-    description.size = Vector2(520, 24)
+    description.size = Vector2(0, 22)
+    description.set_anchors_preset(Control.PRESET_TOP_WIDE)
+    description.anchor_right = 0.74
+    description.offset_right = -8.0
     description.add_theme_font_size_override("font_size", 12)
     description.add_theme_color_override("font_color", Color(0.59, 0.61, 0.60, 1))
     row.add_child(description)
 
     var amount := Label.new()
     amount.text = "× %d" % int(entry.get("amount", 0))
-    amount.position = Vector2(500, 22)
-    amount.size = Vector2(90, 28)
+    amount.position = Vector2(0, 20)
+    amount.size = Vector2(0, 28)
+    amount.set_anchors_preset(Control.PRESET_TOP_WIDE)
+    amount.anchor_left = 0.55
+    amount.anchor_right = 0.73
+    amount.offset_left = 4.0
+    amount.offset_right = -8.0
     amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     amount.add_theme_font_size_override("font_size", 17)
     amount.add_theme_color_override("font_color", Color(0.84, 0.77, 0.59, 1))
@@ -246,8 +257,13 @@ func _make_item_row(entry: Dictionary) -> Control:
     if _active_tab == "Equipment":
         var carry := Button.new()
         carry.text = "CARRY"
-        carry.position = Vector2(610, 16)
-        carry.size = Vector2(100, 40)
+        carry.position = Vector2(0, 16)
+        carry.size = Vector2(0, 40)
+        carry.set_anchors_preset(Control.PRESET_TOP_WIDE)
+        carry.anchor_left = 0.75
+        carry.anchor_right = 0.98
+        carry.offset_left = 4.0
+        carry.offset_right = -4.0
         carry.focus_mode = Control.FOCUS_NONE
         carry.disabled = inventory.equipment.has(str(entry.get("id", ""))) or inventory.equipment.size() >= inventory.equipment_capacity
         carry.pressed.connect(_equip_entry.bind(str(entry.get("id", ""))))
