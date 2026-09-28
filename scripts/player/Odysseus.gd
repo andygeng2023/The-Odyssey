@@ -22,8 +22,15 @@ const SWIM_BODY_DEPTH := 0.42
 const UNDERWATER_DEPTH := 0.85
 const WATER_ENTRY_DEPTH := 0.45
 const PLAYER_HALF_HEIGHT := 0.875
-const GROUND_RAY_TOP := 12.0
-const GROUND_RAY_BOTTOM := -8.0
+const STEP_HEIGHT := 0.34
+const STEP_CHECK_DISTANCE := 0.32
+const CLIMB_MAX_ANGLE := 78.0
+const CLIMB_DETECT_DISTANCE := 1.15
+const CLIMB_UP_SPEED := 2.5
+const SWIM_ACCEL := 8.0
+const SWIM_DRAG := 3.2
+const WATER_BUOYANCY := 5.5
+const WATER_SURFACE_SPRING := 9.0
 
 var climbing := false
 var swimming := false
@@ -80,7 +87,7 @@ func _physics_process(delta: float) -> void:
     var water_depth := water_volume.depth_at(global_position) if water_volume else 0.0
     swimming = in_water_volume and water_depth >= WATER_ENTRY_DEPTH
     underwater = swimming and water_volume.is_underwater(global_position)
-    climbing = is_on_wall() and not is_on_floor() and not swimming and world_direction.length_squared() > 0.05 and traversal.can_continue_traversal()
+    climbing = not swimming and world_direction.length_squared() > 0.05 and traversal.can_continue_traversal() and _detect_auto_climb(world_direction)
 
     var sprinting := Input.is_action_pressed("sprint") or mobile_sprint
     var current_speed := sprint_speed if sprinting else speed
@@ -117,7 +124,9 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     velocity.z = horizontal.z
     ground_speed = horizontal.length()
 
-    if not is_on_floor():
+    if climbing:
+        velocity.y = CLIMB_UP_SPEED
+    elif not is_on_floor():
         velocity.y -= GRAVITY * delta
     elif Input.is_action_just_pressed("jump") or mobile_jump_requested:
         velocity.y = jump_velocity
@@ -126,22 +135,26 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     else:
         velocity.y = -0.45
 
-    if climbing:
-        velocity.y = 2.2
+    if is_on_floor() and not climbing and horizontal.length_squared() > 0.01:
+        _attempt_step_up(horizontal * delta)
 
     move_and_slide()
 
     if is_on_floor():
         _last_ground_y = global_position.y
         apply_floor_snap()
-    elif _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
+
+    if not climbing and _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
         climbing = true
 
 func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) -> void:
     var target_speed := SWIM_SPRINT_SPEED if sprinting else SWIM_SPEED
     var target := world_direction * target_speed
     var horizontal := Vector3(velocity.x, 0.0, velocity.z)
-    horizontal = horizontal.move_toward(target, 10.0 * delta)
+    if target.length_squared() > 0.001:
+        horizontal = horizontal.move_toward(target, SWIM_ACCEL * delta)
+    else:
+        horizontal = horizontal.move_toward(Vector3.ZERO, SWIM_DRAG * delta)
     velocity.x = horizontal.x
     velocity.z = horizontal.z
 
@@ -156,14 +169,19 @@ func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) 
             vertical_target += 3.6
         if mobile_dive_requested or Input.is_action_pressed("action"):
             vertical_target -= 3.2
-        velocity.y = move_toward(velocity.y, vertical_target, 7.5 * delta)
+
+        var depth_target := surface_body_y - UNDERWATER_DEPTH
+        var buoyancy := clampf((depth_target - global_position.y) * WATER_BUOYANCY, -4.0, 4.0)
+        velocity.y = move_toward(velocity.y, vertical_target + buoyancy, 8.0 * delta)
+        velocity.y = move_toward(velocity.y, 0.0, 1.2 * delta)
         mobile_jump_requested = false
         mobile_dive_requested = false
 
         if global_position.y < water_volume.bottom_height + 0.8:
-            velocity.y = maxf(velocity.y, 1.8)
+            velocity.y = maxf(velocity.y, 2.0)
     else:
-        velocity.y = move_toward(velocity.y, (surface_body_y - global_position.y) * 7.0, 15.0 * delta)
+        var surface_error := surface_body_y - global_position.y
+        velocity.y = move_toward(velocity.y, surface_error * WATER_SURFACE_SPRING, 12.0 * delta)
         if Input.is_action_just_pressed("jump") or mobile_jump_requested:
             velocity.y = 3.8
             mobile_jump_requested = false
@@ -174,32 +192,44 @@ func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) 
 
     move_and_slide()
 
-    if not underwater:
-        if global_position.y < surface_body_y - 0.24:
-            global_position.y = surface_body_y
-            velocity.y = maxf(0.0, velocity.y)
-        elif global_position.y > surface_body_y + 0.40:
-            velocity.y = minf(velocity.y, -0.6)
+func _attempt_step_up(horizontal_motion: Vector3) -> void:
+    if horizontal_motion.length() > STEP_CHECK_DISTANCE:
+        horizontal_motion = horizontal_motion.normalized() * STEP_CHECK_DISTANCE
+    if horizontal_motion.length_squared() < 0.0001:
+        return
 
-func _keep_body_on_ground() -> void:
+    var collision := KinematicCollision3D.new()
+    if not test_move(global_transform, horizontal_motion, collision, 0.025, false):
+        return
+
+    var raised := global_transform
+    raised.origin += Vector3.UP * STEP_HEIGHT
+    if test_move(raised, horizontal_motion, null, 0.025, false):
+        return
+
+    var landing := KinematicCollision3D.new()
+    if not test_move(raised, Vector3.DOWN * (STEP_HEIGHT + 0.12), landing, 0.025, false):
+        return
+
+    global_transform = raised
+    velocity.y = 0.0
+
+func _detect_auto_climb(world_direction: Vector3) -> bool:
+    if world_direction.length_squared() < 0.01:
+        return false
+
     var space := get_world_3d().direct_space_state
-    var query := PhysicsRayQueryParameters3D.create(
-        global_position + Vector3.UP * GROUND_RAY_TOP,
-        global_position + Vector3.UP * GROUND_RAY_BOTTOM,
-        1
-    )
+    var origin := global_position + Vector3.UP * 0.82
+    var to := origin + world_direction.normalized() * CLIMB_DETECT_DISTANCE
+    var query := PhysicsRayQueryParameters3D.create(origin, to, 1)
     query.exclude = [get_rid()]
     var hit := space.intersect_ray(query)
     if hit.is_empty():
-        return
+        return false
+
     var normal: Vector3 = hit.normal
-    if normal.dot(Vector3.UP) < 0.72:
-        return
-    var point: Vector3 = hit.position
-    var desired_y := point.y + PLAYER_HALF_HEIGHT
-    if absf(desired_y - global_position.y) > 0.015 and desired_y <= global_position.y + 0.25:
-        global_position.y = desired_y
-        velocity.y = 0.0
+    var angle := rad_to_deg(acos(clampf(normal.dot(Vector3.UP), -1.0, 1.0)))
+    return angle > 48.0 and angle <= CLIMB_MAX_ANGLE and traversal.can_continue_traversal()
 
 func teleport_to(destination: Vector3) -> void:
     velocity = Vector3.ZERO
@@ -249,24 +279,28 @@ func _animate_character(delta: float, moving: bool) -> void:
     if body == null or head == null:
         return
 
-    var stride: float = sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
-    var bob: float = abs(stride) * 0.035 if moving else sin(_visual_time * 2.2) * 0.012
+    var gait := sin(_visual_time * 8.4)
+    var stride: float = gait if moving else 0.0
+    var bob: float = abs(gait) * 0.025 if moving else sin(_visual_time * 1.8) * 0.008
     body.position.y = _visual_base_y + bob
-    head.position.y = 1.64 + bob * 0.7
+    head.position.y = 1.64 + bob * 0.72
 
+    var lean := clampf(ground_speed / maxf(1.0, sprint_speed), 0.0, 1.0)
+    body.rotation.z = lerpf(body.rotation.z, -0.035 * lean, delta * 10.0)
     if is_instance_valid(cloak):
-        cloak.rotation_degrees.z = sin(_visual_time * 5.0) * (2.5 if moving else 0.8)
+        cloak.rotation_degrees.z = sin(_visual_time * 4.0) * (2.0 if moving else 0.6)
+        cloak.position.y = lerpf(cloak.position.y, 0.94 + bob * 0.6, delta * 8.0)
 
     if moving:
-        left_arm.rotation_degrees.z = 10.0 + stride * 12.0
-        right_arm.rotation_degrees.z = -10.0 - stride * 12.0
-        left_leg.rotation_degrees.x = stride * 12.0
-        right_leg.rotation_degrees.x = -stride * 12.0
+        left_arm.rotation_degrees.z = lerpf(left_arm.rotation_degrees.z, 8.0 + stride * 8.0, delta * 12.0)
+        right_arm.rotation_degrees.z = lerpf(right_arm.rotation_degrees.z, -8.0 - stride * 8.0, delta * 12.0)
+        left_leg.rotation_degrees.x = lerpf(left_leg.rotation_degrees.x, stride * 9.0, delta * 12.0)
+        right_leg.rotation_degrees.x = lerpf(right_leg.rotation_degrees.x, -stride * 9.0, delta * 12.0)
     else:
-        left_arm.rotation_degrees.z = lerpf(left_arm.rotation_degrees.z, 10.0, delta * 5.0)
-        right_arm.rotation_degrees.z = lerpf(right_arm.rotation_degrees.z, -10.0, delta * 5.0)
-        left_leg.rotation_degrees.x = lerpf(left_leg.rotation_degrees.x, 0.0, delta * 5.0)
-        right_leg.rotation_degrees.x = lerpf(right_leg.rotation_degrees.x, 0.0, delta * 5.0)
+        left_arm.rotation_degrees.z = lerpf(left_arm.rotation_degrees.z, 8.0, delta * 7.0)
+        right_arm.rotation_degrees.z = lerpf(right_arm.rotation_degrees.z, -8.0, delta * 7.0)
+        left_leg.rotation_degrees.x = lerpf(left_leg.rotation_degrees.x, 0.0, delta * 7.0)
+        right_leg.rotation_degrees.x = lerpf(right_leg.rotation_degrees.x, 0.0, delta * 7.0)
 
 func _recover_if_out_of_bounds() -> void:
     if _recovering:
