@@ -8,7 +8,7 @@ extends Node3D
 @onready var player: Odysseus = $Player
 @onready var relationships: OdysseyRelationshipSystem = $Systems/Relationships
 @onready var features: OdysseyWorldFeatureRegistry = $Systems/Features
-@onready var backpack: OdysseyBackpackUI = $UI/BackpackUI
+@onready var backpack: OdysseyBackpackUI = $UI/BackpackLayer/BackpackUI
 
 func _ready() -> void:
     inventory.add_material("wood", 4)
