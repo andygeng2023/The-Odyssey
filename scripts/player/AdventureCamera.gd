@@ -19,6 +19,9 @@ func _ready() -> void:
         push_warning("AdventureCamera target not found: " + str(target_path))
         return
     _follow_position = _target.global_position + Vector3.UP * height
+    var arm := get_node_or_null("SpringArm3D") as SpringArm3D
+    if arm:
+        arm.add_excluded_object(_target.get_rid())
     var controls := get_node_or_null("../UI/MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.camera_drag.connect(_on_camera_drag)
@@ -39,4 +42,10 @@ func _apply_camera_transform(delta: float) -> void:
 func _on_camera_drag(delta: Vector2) -> void:
     yaw -= delta.x * sensitivity
     pitch = clampf(pitch - delta.y * sensitivity, min_pitch, max_pitch)
+    _apply_camera_transform(1.0)
+
+func snap_to_target() -> void:
+    if not is_instance_valid(_target):
+        return
+    _follow_position = _target.global_position + Vector3.UP * height
     _apply_camera_transform(1.0)
