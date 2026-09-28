@@ -53,7 +53,7 @@ func _create_action_buttons() -> void:
         button.mouse_filter = Control.MOUSE_FILTER_STOP
         button.z_index = 100
         button.pressed.connect(_on_button_pressed.bind(id))
-        button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
+        button.add_theme_font_size_override("font_size", 26 if id in ["jump", "action", "sprint"] else 22)
         add_child(button)
         _buttons[id] = button
     _style_action_buttons()
@@ -94,7 +94,7 @@ func _layout_buttons() -> void:
         var rect: Rect2 = rects[id] as Rect2
         button.position = rect.position
         button.size = rect.size
-        button.text = "BAG" if id == "backpack" else ("MAP" if id == "map" else id.to_upper())
+        button.text = _button_glyph(id)
 
 func _joystick_center() -> Vector2:
     return Vector2(maxf(118.0, size.x * 0.15), size.y - maxf(122.0, size.y * 0.17))
@@ -111,6 +111,23 @@ func _button_rects() -> Dictionary:
         "backpack": Rect2(right - BACKPACK_SIZE, 28.0, BACKPACK_SIZE, BACKPACK_SIZE),
         "map": Rect2(right - BACKPACK_SIZE * 2.0 - BUTTON_GAP, 28.0, MAP_SIZE, MAP_SIZE)
     }
+
+func _button_glyph(id: String) -> String:
+    match id:
+        "jump":
+            return "↑"
+        "interact":
+            return "E"
+        "action":
+            return "A"
+        "sprint":
+            return "⇧"
+        "backpack":
+            return "◈"
+        "map":
+            return "⊕"
+        _:
+            return "•"
 
 func _button_at(point: Vector2) -> String:
     var rects := _button_rects()
