@@ -31,5 +31,14 @@ int main(){
         assert(p.swimming);
         assert(p.position.y<1.0f);
     }
+    {
+        PhysicsWorld w;
+        w.addBox({{0,1.5f,3.5f},{2.0f,1.5f,0.5f},true});
+        Vec3 target{0,1.0f,0};
+        Vec3 desired{0,1.0f,7.0f};
+        Vec3 camera=w.cameraPosition(target,desired,0.25f);
+        assert(camera.z<3.1f);
+        assert(camera.z>0.1f);
+    }
     return 0;
 }
