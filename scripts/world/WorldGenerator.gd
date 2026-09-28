@@ -497,6 +497,8 @@ func _spawn_raft(pos: Vector3) -> OdysseyBoat:
     raft.add_child(shape)
     var boarding := _make_interactable(pos + Vector3(0, 0.6, 1.7), "Raft helm", "Board / leave raft", _board_raft)
     boarding.set_meta("raft", raft)
+    boarding.reparent(raft)
+    boarding.position = Vector3(0, 0.6, 1.7)
     return raft
 
 func _board_raft(node: Node, player: Node = null) -> void:
