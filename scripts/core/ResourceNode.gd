@@ -9,9 +9,10 @@ func harvest(actor: Node, inventory: OdysseyInventory) -> bool:
 	if harvest_uses <= 0 or inventory == null:
 		return false
 	for material_id in harvest_yield:
-		inventory.add_material(material_id, int(harvest_yield[material_id]))
-	harvested.emit(actor, material_id, int(harvest_yield[material_id]))
+		var amount := int(harvest_yield[material_id])
+		inventory.add_material(material_id, amount)
+		harvested.emit(actor, material_id, amount)
 	harvest_uses -= 1
-	if harvest_uses == 0:
+	if harvest_uses <= 0:
 		queue_free()
 	return true
