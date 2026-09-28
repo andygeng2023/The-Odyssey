@@ -18,6 +18,10 @@
 [ext_resource path="res://scripts/core/PhysicsInteractionSystem.gd" type="Script" id="16"]
 [ext_resource path="res://scripts/core/DestructionSystem.gd" type="Script" id="17"]
 [ext_resource path="res://scripts/core/SurvivalDirector.gd" type="Script" id="18"]
+[ext_resource path="res://scripts/core/GatheringSystem.gd" type="Script" id="23"]
+[ext_resource path="res://scripts/core/RealmSystem.gd" type="Script" id="24"]
+[ext_resource path="res://scripts/world/WaterVolume.gd" type="Script" id="25"]
+[ext_resource path="res://scripts/ui/MapUI.gd" type="Script" id="26"]
 [ext_resource path="res://scripts/world/WorldGenerator.gd" type="Script" id="19"]
 [ext_resource path="res://scripts/ui/GameHUD.gd" type="Script" id="20"]
 [ext_resource path="res://scripts/ui/MobileControls.gd" type="Script" id="21"]
@@ -144,6 +148,10 @@ script = ExtResource("16")
 script = ExtResource("17")
 [node name="SurvivalDirector" type="Node" parent="Systems"]
 script = ExtResource("18")
+[node name="Gathering" type="Node" parent="Systems"]
+script = ExtResource("23")
+[node name="Realms" type="Node" parent="Systems"]
+script = ExtResource("24")
 
 [node name="World" type="Node3D" parent="."]
 script = ExtResource("19")
@@ -304,6 +312,10 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("21")
 
+[node name="MapLayer" type="CanvasLayer" parent="UI"]
+layer = 35
+[node name="MapUI" type="CanvasLayer" parent="UI/MapLayer"]
+script = ExtResource("26")
 [node name="BackpackLayer" type="CanvasLayer" parent="UI"]
 layer = 40
 [node name="BackpackUI" type="Control" parent="UI/BackpackLayer"]
