@@ -539,10 +539,16 @@ func _visit_shrine(_node: Node, _player: Node = null) -> void:
 
 func _enter_underwater(_node: Node, _player: Node = null) -> void:
     discovery.discover("sunken_cave", "underwater")
+    var realms := get_parent().get_node_or_null("Systems/Realms") as OdysseyRealmSystem
+    if realms:
+        realms.enter("underwater")
     _message("Dive route discovered: submerged ruins, wildlife and treasure belong beneath the surface.")
 
 func _discover_realm(discovery_id: String, title: String, _node: Node = null, _player: Node = null) -> void:
     discovery.discover(discovery_id, "mythic_realms")
+    var realms := get_parent().get_node_or_null("Systems/Realms") as OdysseyRealmSystem
+    if realms:
+        realms.enter(discovery_id)
     _message(title + " discovered. The realm is now a destination rather than a forced story corridor.")
 
 func _discover_calypso(_node: Node, _player: Node = null) -> void:
