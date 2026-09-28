@@ -63,8 +63,10 @@ void vertex() {
 }
 void fragment() {
     float shimmer = 0.08 * sin(UV.x * 80.0 + TIME * 1.5);
-    ALBEDO = water_color.rgb + vec3(shimmer);
-    ROUGHNESS = 0.12;
+    float wave_line = 0.5 + 0.5 * sin(UV.y * 45.0 + TIME * 0.8 + UV.x * 12.0);
+    float foam = smoothstep(0.76, 0.98, wave_line) * 0.12;
+    ALBEDO = water_color.rgb + vec3(shimmer + foam * 0.8, shimmer + foam, shimmer * 0.8 + foam);
+    ROUGHNESS = 0.10;
     METALLIC = 0.08;
     ALPHA = water_color.a;
 }
