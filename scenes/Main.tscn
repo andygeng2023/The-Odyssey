@@ -48,15 +48,15 @@ sun_angle_max = 12.0
 sky_material = SubResource("SkyMaterial")
 [sub_resource type="Environment" id="Environment"]
 background_mode = 2
-background_energy_multiplier = 1.15
+background_energy_multiplier = 1.08
 fog_enabled = true
 fog_light_color = Color(0.74, 0.78, 0.72, 1)
 fog_light_energy = 0.65
-fog_density = 0.005
+fog_density = 0.0035
 fog_sky_affect = 0.35
 ambient_light_source = 3
 ambient_light_color = Color(0.72, 0.79, 0.88, 1)
-ambient_light_energy = 1.05
+ambient_light_energy = 0.92
 tonemap_mode = 2
 reflected_light_source = 2
 sky = SubResource("Sky")
@@ -141,7 +141,10 @@ script = ExtResource("18")
 script = ExtResource("19")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 1.2, 5)
+position = Vector3(0, 0.95, 5)
+floor_snap_length = 0.45
+floor_stop_on_slope = true
+floor_max_angle = 0.837758
 script = ExtResource("2")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("PlayerCapsule")
@@ -210,10 +213,11 @@ script = ExtResource("5")
 script = ExtResource("3")
 target_path = NodePath("../Player")
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
-spring_length = 5.8
+spring_length = 5.2
 margin = 0.35
 collision_mask = 1
 [node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
+position = Vector3(1.15, 0.35, 0.0)
 current = true
 fov = 58.0
 near = 0.05
