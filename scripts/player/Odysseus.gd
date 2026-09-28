@@ -9,7 +9,7 @@ extends CharacterBody3D
 
 const SAFE_SPAWN := Vector3(0.0, 0.88, 5.0)
 const FALL_LIMIT := -12.0
-const WORLD_LIMIT := 75.0
+const WORLD_LIMIT := 125.0
 const GROUND_ACCEL := 24.0
 const GROUND_DECEL := 30.0
 const AIR_ACCEL := 10.0
@@ -21,6 +21,9 @@ const SURFACE_HEIGHT := -0.04
 const SWIM_BODY_DEPTH := 0.42
 const UNDERWATER_DEPTH := 0.85
 const WATER_ENTRY_DEPTH := 0.45
+const PLAYER_HALF_HEIGHT := 0.875
+const GROUND_RAY_TOP := 12.0
+const GROUND_RAY_BOTTOM := -8.0
 
 var climbing := false
 var swimming := false
@@ -131,6 +134,7 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     if is_on_floor():
         _last_ground_y = global_position.y
         apply_floor_snap()
+        _keep_body_on_ground()
     elif _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
         climbing = true
 
@@ -177,6 +181,50 @@ func _physics_swimming(delta: float, world_direction: Vector3, sprinting: bool) 
             velocity.y = maxf(0.0, velocity.y)
         elif global_position.y > surface_body_y + 0.40:
             velocity.y = minf(velocity.y, -0.6)
+
+func _keep_body_on_ground() -> void:
+    var space := get_world_3d().direct_space_state
+    var query := PhysicsRayQueryParameters3D.create(
+        global_position + Vector3.UP * GROUND_RAY_TOP,
+        global_position + Vector3.UP * GROUND_RAY_BOTTOM,
+        1
+    )
+    query.exclude = [get_rid()]
+    var hit := space.intersect_ray(query)
+    if hit.is_empty():
+        return
+    var point: Vector3 = hit.position
+    var desired_y := point.y + PLAYER_HALF_HEIGHT
+    if absf(desired_y - global_position.y) > 0.015 and desired_y <= global_position.y + 0.25:
+        global_position.y = desired_y
+        velocity.y = 0.0
+
+func teleport_to(destination: Vector3) -> void:
+    velocity = Vector3.ZERO
+    climbing = false
+    swimming = false
+    underwater = false
+    mobile_jump_requested = false
+    mobile_dive_requested = false
+
+    var space := get_world_3d().direct_space_state
+    var query := PhysicsRayQueryParameters3D.create(
+        destination + Vector3.UP * 20.0,
+        destination + Vector3.DOWN * 20.0,
+        1
+    )
+    query.exclude = [get_rid()]
+    var hit := space.intersect_ray(query)
+    if not hit.is_empty():
+        global_position = hit.position + Vector3.UP * (PLAYER_HALF_HEIGHT + 0.06)
+    else:
+        global_position = destination + Vector3.UP * PLAYER_HALF_HEIGHT
+
+    apply_floor_snap()
+    _last_ground_y = global_position.y
+    var camera_rig := get_node_or_null("../CameraRig") as OdysseyAdventureCamera
+    if camera_rig:
+        camera_rig.snap_to_target()
 
 func _find_steep_surface() -> bool:
     for i in get_slide_collision_count():
