@@ -1,0 +1,23 @@
+name: Build Odyssey Engine
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
+      - name: Smoke binary
+        run: test -x build/odyssey
+      - uses: actions/upload-artifact@v4
+        with:
+          name: odyssey-engine-${{ github.sha }}
+          path: build/odyssey
