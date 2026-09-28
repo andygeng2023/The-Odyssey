@@ -19,4 +19,4 @@ func depth_at(point: Vector3) -> float:
     return maxf(0.0, surface_height - point.y)
 
 func is_underwater(point: Vector3) -> bool:
-    return contains(point) and point.y < surface_height - 0.45
+    return contains(point) and point.y < surface_height - 0.85
