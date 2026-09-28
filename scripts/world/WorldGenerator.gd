@@ -212,6 +212,15 @@ func _make_wildlife(pos: Vector3, species: String) -> void:
     body.material_override = _material(Color(0.48,0.31,0.16,1))
     body.position.y = 0.65
     animal.add_child(body)
+    var animal_collision := CollisionShape3D.new()
+    var animal_shape := CapsuleShape3D.new()
+    animal_shape.radius = 0.35
+    animal_shape.height = 0.9
+    animal_collision.shape = animal_shape
+    animal_collision.position = Vector3(0, 0.65, 0)
+    var animal_body := StaticBody3D.new()
+    animal.add_child(animal_body)
+    animal_body.add_child(animal_collision)
     _label(animal, species.to_upper(), Vector3(0,1.8,0))
 
 func _make_interactable(pos: Vector3, node_name: String, action_name: String, callback: Callable) -> OdysseyPrototypeInteractable:
