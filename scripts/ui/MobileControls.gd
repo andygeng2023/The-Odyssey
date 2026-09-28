@@ -39,7 +39,8 @@ func _create_action_buttons() -> void:
         var button := Button.new()
         button.name = id.capitalize() + "Button"
         button.focus_mode = Control.FOCUS_NONE
-        button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        button.mouse_filter = Control.MOUSE_FILTER_STOP
+        button.pressed.connect(_on_button_pressed.bind(id))
         button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
         add_child(button)
         _buttons[id] = button
@@ -107,23 +108,20 @@ func _button_at(point: Vector2) -> String:
 func _camera_zone(point: Vector2) -> bool:
     return point.x >= size.x * CAMERA_START_X and _button_at(point) == ""
 
-func _on_gui_button_pressed(button: String) -> void:
-    # Route gameplay buttons directly to their authoritative targets. Signals
-    # remain available for other systems, but the core mobile path does not
-    # depend on another Control receiving a signal correctly.
+func _on_button_pressed(button: String) -> void:
     var player := get_tree().get_first_node_in_group("odyssey_player") as Odysseus
     if player:
-        if button == "interact":
-            player.try_interact()
-        elif button == "jump":
-            player.handle_mobile_action("jump")
-        elif button == "sprint":
-            player.handle_mobile_action("sprint")
+        match button:
+            "interact":
+                player.try_interact()
+            "jump":
+                player.handle_mobile_action("jump")
+            "sprint":
+                player.handle_mobile_action("sprint")
     if button == "backpack":
         var backpack_ui := get_node_or_null("../../BackpackLayer/BackpackUI") as OdysseyBackpackUI
         if backpack_ui:
             backpack_ui.toggle()
-
     if button == "interact":
         interact_pressed.emit()
     elif button == "backpack":
@@ -131,17 +129,15 @@ func _on_gui_button_pressed(button: String) -> void:
     else:
         action_pressed.emit(button)
 
+func _on_gui_button_pressed(button: String) -> void:
+    _on_button_pressed(button)
+
 func _input(event: InputEvent) -> void:
     # Read the viewport-level input before any child Control can consume it.
     # This is the authoritative route for touch/click gameplay controls.
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
-            var button := _button_at(touch.position)
-            if button != "":
-                _on_gui_button_pressed(button)
-                get_viewport().set_input_as_handled()
-                return
             var joystick := _joystick_center()
             if touch.position.distance_to(joystick) <= JOYSTICK_RADIUS and not _touch_roles.has(touch.index):
                 _touch_roles[touch.index] = "move"
@@ -180,11 +176,6 @@ func _input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
         if event.pressed:
-            var button := _button_at(event.position)
-            if button != "":
-                _on_gui_button_pressed(button)
-                get_viewport().set_input_as_handled()
-                return
             if _camera_zone(event.position):
                 _mouse_camera_active = true
                 _camera_last = event.position
