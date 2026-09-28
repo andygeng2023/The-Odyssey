@@ -8,6 +8,8 @@ var warmth := 100.0
 var fatigue := 0.0
 var exposure := 0.0
 var oxygen := 100.0
+var max_health := 5.0
+var health := 5.0
 var weather := "clear"
 
 func tick(delta: float, moving: bool, near_fire: bool, in_water := false, underwater := false) -> void:
@@ -38,4 +40,12 @@ func eat(amount: float = 20.0) -> void:
 func rest(amount: float = 25.0) -> void:
     fatigue = maxf(0.0, fatigue - amount)
     warmth = minf(100.0, warmth + amount * 0.2)
+    state_changed.emit(self)
+
+func damage(amount: float) -> void:
+    health = clampf(health - maxf(0.0, amount), 0.0, max_health)
+    state_changed.emit(self)
+
+func heal(amount: float) -> void:
+    health = clampf(health + maxf(0.0, amount), 0.0, max_health)
     state_changed.emit(self)
