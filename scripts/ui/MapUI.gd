@@ -65,14 +65,35 @@ func _build() -> void:
     destination_box.add_child(map_label)
 
 func _refresh(_id: String) -> void:
-    if not map_label or not discovery:
+    if not destination_box or not discovery:
         return
-    var lines: Array[String] = [
-        "DISCOVERED DESTINATIONS",
-        "────────────────────────",
-        discovery.map_text()
-    ]
-    map_label.text = "\n".join(lines)
+    for child in destination_box.get_children():
+        child.queue_free()
+
+    var heading := Label.new()
+    heading.text = "DISCOVERED DESTINATIONS"
+    heading.add_theme_font_size_override("font_size", 18)
+    heading.add_theme_color_override("font_color", Color(1, 0.92, 0.72, 1))
+    destination_box.add_child(heading)
+
+    var found := false
+    for id in discovery.landmarks.keys():
+        if not discovery.is_discovered(str(id)):
+            continue
+        found = true
+        var entry: Dictionary = discovery.landmarks[id]
+        var button := Button.new()
+        button.text = "TRAVEL  •  " + str(entry.title) + "  [" + str(entry.region) + "]"
+        button.custom_minimum_size = Vector2(0, 42)
+        button.focus_mode = Control.FOCUS_NONE
+        button.pressed.connect(_fast_travel.bind(str(id)))
+        destination_box.add_child(button)
+
+    if not found:
+        var empty := Label.new()
+        empty.text = "No destinations discovered yet. Explore landmarks to reveal them."
+        empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        destination_box.add_child(empty)
 
 func _fast_travel(id: String) -> void:
     if player == null or discovery == null or not discovery.can_fast_travel_to(id):
@@ -83,7 +104,7 @@ func _fast_travel(id: String) -> void:
     player.global_position = destination + Vector3.UP * 0.9
     player.velocity = Vector3.ZERO
     close_map()
-    var hud := get_node_or_null("../../GameHUD") as OdysseyGameHUD
+    var hud := get_node_or_null("../GameHUD") as OdysseyGameHUD
     if hud:
         hud.show_message("Travelled to " + str(discovery.landmarks[id].title) + ".", 3.0)
 
@@ -104,6 +125,6 @@ func open_map() -> void:
 func close_map() -> void:
     _open = false
     panel.visible = false
-    var controls := get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
+    var controls := get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.visible = true
