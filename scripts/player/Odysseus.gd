@@ -19,6 +19,14 @@ var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
 var mobile_jump_requested := false
 var mobile_jump_buffer := 0.0
+var coyote_time := 0.0
+var ground_speed := 0.0
+const GROUND_ACCEL := 22.0
+const GROUND_DECEL := 28.0
+const AIR_ACCEL := 9.0
+const AIR_DECEL := 5.0
+const COYOTE_WINDOW := 0.14
+var mobile_jump_buffer := 0.0
 var _recovering := false
 var _visual_time := 0.0
 var _visual_base_y := 0.0
@@ -59,8 +67,17 @@ func _physics_process(delta: float) -> void:
 
     var sprinting := Input.is_action_pressed("sprint") or mobile_sprint
     var current_speed := sprint_speed if sprinting else speed
-    velocity.x = world_direction.x * current_speed
-    velocity.z = world_direction.z * current_speed
+    var target_horizontal := world_direction * current_speed
+    var horizontal := Vector3(velocity.x, 0.0, velocity.z)
+    var accel := GROUND_ACCEL if is_on_floor() else AIR_ACCEL
+    var decel := GROUND_DECEL if is_on_floor() else AIR_DECEL
+    if target_horizontal.length_squared() > 0.001:
+        horizontal = horizontal.move_toward(target_horizontal, accel * delta)
+    else:
+        horizontal = horizontal.move_toward(Vector3.ZERO, decel * delta)
+    velocity.x = horizontal.x
+    velocity.z = horizontal.z
+    ground_speed = horizontal.length()
 
     if swimming:
         velocity.y = move_toward(velocity.y, 0.0, delta * 9.0)
@@ -85,6 +102,10 @@ func _physics_process(delta: float) -> void:
     traversal.tick(delta, climbing, swimming)
     if traversal.stamina <= 0.0:
         climbing = false
+    if is_on_floor() and get_floor_angle() > deg_to_rad(42.0):
+        var slope_normal := get_floor_normal()
+        var slope_force := Vector3.DOWN - slope_normal * Vector3.DOWN.dot(slope_normal)
+        velocity += slope_force * delta * 7.5
 
     _animate_character(delta, world_direction.length_squared() > 0.001)
     if world_direction.length_squared() > 0.001:
