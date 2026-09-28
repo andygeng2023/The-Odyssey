@@ -39,7 +39,7 @@ height = 1.35
 radius = 0.34
 height = 0.68
 [sub_resource type="BoxMesh" id="GroundMesh"]
-size = Vector3(100, 0.5, 54)
+size = Vector3(240, 0.5, 150)
 [sub_resource type="StandardMaterial3D" id="GroundMaterial"]
 albedo_color = Color(0.24, 0.42, 0.20, 1)
 roughness = 0.95
@@ -278,7 +278,7 @@ directional_shadow_max_distance = 105.0
 directional_shadow_fade_start = 0.75
 
 [node name="Ground" type="StaticBody3D" parent="."]
-position = Vector3(0, -0.25, 28.0)
+position = Vector3(0, -0.25, 44.0)
 [node name="Mesh" type="MeshInstance3D" parent="Ground"]
 mesh = SubResource("GroundMesh")
 material_override = SubResource("GroundMaterial")
@@ -289,19 +289,19 @@ shape = SubResource("GroundShape")
 collision_layer = 1
 collision_mask = 1
 [node name="West" type="CollisionShape3D" parent="WorldBounds"]
-position = Vector3(-52, 8, 17.5)
+position = Vector3(-122, 8, 44)
 shape = SubResource("GroundShape")
 scale = Vector3(0.02, 32.0, 1.0)
 [node name="East" type="CollisionShape3D" parent="WorldBounds"]
-position = Vector3(52, 8, 17.5)
+position = Vector3(122, 8, 44)
 shape = SubResource("GroundShape")
 scale = Vector3(0.02, 32.0, 1.0)
 [node name="North" type="CollisionShape3D" parent="WorldBounds"]
-position = Vector3(0, 8, 58)
+position = Vector3(0, 8, 120)
 shape = SubResource("GroundShape")
 scale = Vector3(1.0, 32.0, 0.02)
 [node name="South" type="CollisionShape3D" parent="WorldBounds"]
-position = Vector3(0, 8, -58)
+position = Vector3(0, 8, -32)
 shape = SubResource("GroundShape")
 scale = Vector3(1.0, 32.0, 0.02)
 
