@@ -21,7 +21,10 @@ var _camera_last := Vector2.ZERO
 var _buttons: Dictionary = {}
 
 func _ready() -> void:
-    mouse_filter = Control.MOUSE_FILTER_PASS
+    # This control owns the complete mobile input surface. The visible Button
+    # nodes are visual only; handling the hit rectangles here makes touch and
+    # mouse behavior deterministic across web and mobile.
+    mouse_filter = Control.MOUSE_FILTER_STOP
     process_mode = Node.PROCESS_MODE_ALWAYS
     _create_action_buttons()
     queue_redraw()
@@ -35,9 +38,8 @@ func _create_action_buttons() -> void:
         var button := Button.new()
         button.name = id.capitalize() + "Button"
         button.focus_mode = Control.FOCUS_NONE
-        button.mouse_filter = Control.MOUSE_FILTER_STOP
+        button.mouse_filter = Control.MOUSE_FILTER_IGNORE
         button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
-        button.pressed.connect(_on_gui_button_pressed.bind(id))
         add_child(button)
         _buttons[id] = button
     _style_action_buttons()
@@ -94,8 +96,9 @@ func _button_rects() -> Dictionary:
     }
 
 func _button_at(point: Vector2) -> String:
-    for id: String in _button_rects().keys():
-        var rect: Rect2 = _button_rects()[id] as Rect2
+    var rects := _button_rects()
+    for id: String in rects.keys():
+        var rect: Rect2 = rects[id] as Rect2
         if rect.has_point(point):
             return id
     return ""
@@ -112,12 +115,13 @@ func _on_gui_button_pressed(button: String) -> void:
         action_pressed.emit(button)
 
 func _gui_input(event: InputEvent) -> void:
-    # Buttons receive their own GUI events. This parent only owns free touch space,
-    # so multiple fingers can drive movement and camera without stealing button taps.
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
-            if _button_at(touch.position) != "":
+            var button := _button_at(touch.position)
+            if button != "":
+                _on_gui_button_pressed(button)
+                accept_event()
                 return
             var joystick := _joystick_center()
             if touch.position.distance_to(joystick) <= JOYSTICK_RADIUS and not _touch_roles.has(touch.index):
@@ -157,7 +161,10 @@ func _gui_input(event: InputEvent) -> void:
             accept_event()
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
         if event.pressed:
-            if _button_at(event.position) != "":
+            var button := _button_at(event.position)
+            if button != "":
+                _on_gui_button_pressed(button)
+                accept_event()
                 return
             if _camera_zone(event.position):
                 _mouse_camera_active = true
@@ -174,7 +181,10 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
     var center := _joystick_center()
-    var knob := center + move_vector * JOYSTICK_RADIUS * 0.52
+    # move_vector uses gameplay coordinates (up = positive Y), while canvas
+    # coordinates use down = positive Y. Flip only when drawing the knob.
+    var visual_vector := Vector2(move_vector.x, -move_vector.y)
+    var knob := center + visual_vector * JOYSTICK_RADIUS * 0.52
     draw_circle(center, JOYSTICK_RADIUS, Color(0.025, 0.04, 0.07, 0.50))
     draw_arc(center, JOYSTICK_RADIUS, 0.0, TAU, 64, Color(0.95, 0.88, 0.68, 0.78), 3.0)
     draw_circle(knob, JOYSTICK_RADIUS * 0.34, Color(0.94, 0.88, 0.68, 0.86))
