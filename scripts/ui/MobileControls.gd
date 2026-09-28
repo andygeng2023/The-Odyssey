@@ -11,7 +11,7 @@ const CAMERA_SENSITIVITY: float = 0.006
 const BUTTON_SIZE: float = 88.0
 const BUTTON_GAP: float = 14.0
 const CAMERA_START_X: float = 0.38
-const CAMERA_DRAG_THRESHOLD: float = 3.0
+const CAMERA_DRAG_THRESHOLD: float = 2.0
 
 var move_vector: Vector2 = Vector2.ZERO
 var _move_touch: int = -1
@@ -38,7 +38,7 @@ func _button_rects() -> Dictionary:
     return {
         "jump": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE * 2.0 - BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE),
         "interact": Rect2(right - BUTTON_SIZE, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE),
-        "action": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE)
+        "sprint": Rect2(right - BUTTON_SIZE * 2.0 - BUTTON_GAP, bottom - BUTTON_SIZE, BUTTON_SIZE, BUTTON_SIZE)
     }
 
 func _button_at(point: Vector2) -> String:
