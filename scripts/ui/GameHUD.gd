@@ -23,7 +23,7 @@ class HUDArt extends Control:
         var max_health := survival.max_health if survival else 5.0
         var hearts := int(ceil(max_health))
         var filled := int(floor(health))
-        var partial := health - floor(health)
+        var partial: float = health - floor(health)
 
         for i in hearts:
             var center := Vector2(34.0 + i * 30.0, 32.0)
