@@ -1,49 +1,30 @@
-# The Odyssey — Mobile Open-World Adventure
+# The Odyssey
 
-Godot 4.x foundation for an emergent, physically-inspired open-world Odyssey.
+The Odyssey is being rebuilt as a custom C++ game engine project.
 
-Implemented:
-- Capability-based world objects and interactions.
-- Physics-aware grabbing, throwing and construction.
-- Resource harvesting and destruction.
-- Fire and rope systems.
-- Bulk-material inventory with limited equipment capacity.
-- Crafting, climbing, swimming/diving and weather foundations.
-- Discovery-gated fast travel.
-- Godot Web export.
-- GitHub Actions CI/build and GitHub Pages Web deployment.
-- Supabase REST client foundation and RLS-protected persistent world-state schema.
+The old Godot prototype remains in the repository as historical reference. The active runtime is engine/.
 
-## Automatic deployment
+## Build
 
-.github/workflows/deploy.yml builds the Godot Web export on pull requests and deploys the game to GitHub Pages on pushes to main.
+Requirements:
+- CMake 3.20+
+- C++20 compiler
+- internet access on first configure so CMake can fetch Raylib 5.5
 
-Required GitHub repository Actions secrets:
-- INFINITYFREE_FTP_SERVER
-- INFINITYFREE_FTP_USERNAME
-- INFINITYFREE_FTP_PASSWORD
-- INFINITYFREE_FTP_SERVER_DIR
-- SUPABASE_URL
-- SUPABASE_ANON_KEY
+```bash
+cmake -S . -B build
+cmake --build build --config Release
+```
 
-Do not commit FTP passwords, database passwords, Supabase service-role keys, or other privileged credentials.
+Run the resulting odyssey executable.
 
-## InfinityFree
+## Current engine goals
 
-Create the site in InfinityFree, copy the exact FTPS host, username, password and target directory from its FTP/account panel, and store them as the four INFINITYFREE_* repository secrets. Do not guess the server directory.
+1. Stable third-person physics.
+2. Automatic step-up for low obstacles.
+3. Contextual climbing on steep surfaces.
+4. Independent water movement and buoyancy.
+5. Systemic world simulation.
+6. Mobile and web backends after the desktop physics slice is stable.
 
-After this branch is merged into main, every push to main will build the Web game and deploy it to the configured InfinityFree directory.
-
-## Supabase
-
-Run supabase/migrations/001_odyssey_world_state.sql in the Supabase SQL editor. It creates authenticated-player world-state storage and enables Row Level Security so players can only read/write their own row.
-
-Use only the Supabase URL and publishable/anon key in the client. Never expose the service-role key.
-
-## Local
-
-Open the repository in Godot 4.x and run scenes/Main.tscn. For a browser build, use the Web export preset.
-
-Current direction: mobile-first third-person open world with a systemic, physics-driven adventure loop. See docs/GAME_DESIGN.md for the full feature map. The current shore slice exposes the city, shrine, underwater cave, mythic gates, Calypso's island, wildlife, gathering, construction, survival foundations, climbing and swimming.
-
-<!-- Mobile Pages deployment trigger: 2026-09-27 -->
+See docs/OWN_ENGINE_ARCHITECTURE.md.
