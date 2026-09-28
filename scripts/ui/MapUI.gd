@@ -73,7 +73,7 @@ func open_map() -> void:
     _open = true
     panel.visible = true
     _refresh("")
-    var controls := get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
+    var controls := get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.visible = false
 
