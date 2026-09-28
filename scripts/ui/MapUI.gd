@@ -47,6 +47,7 @@ var title_label: Label
 var destination_box: VBoxContainer
 var close_button: Button
 var hint_label: Label
+var marker_buttons: Array[Button] = []
 var _open := false
 
 func _ready() -> void:
@@ -153,6 +154,8 @@ func _layout() -> void:
     map_art.position = Vector2(margin, content_top)
     map_art.size = Vector2(map_width, content_height)
 
+    _position_map_markers()
+
     var right := destination_box.get_parent() as Panel
     right.position = Vector2(margin + map_width + gap, content_top)
     right.size = Vector2(maxf(220.0, right_width), content_height)
@@ -186,6 +189,10 @@ func _refresh(_id: String) -> void:
         return
     for child in destination_box.get_children():
         child.queue_free()
+    for marker in marker_buttons:
+        if is_instance_valid(marker):
+            marker.queue_free()
+    marker_buttons.clear()
 
     var found := false
     for id in discovery.landmarks.keys():
@@ -201,6 +208,7 @@ func _refresh(_id: String) -> void:
         _style_button(button, false)
         button.pressed.connect(_fast_travel.bind(str(id)))
         destination_box.add_child(button)
+        _add_map_marker(str(id), entry)
 
     if not found:
         var empty := Label.new()
@@ -210,6 +218,54 @@ func _refresh(_id: String) -> void:
         empty.add_theme_font_size_override("font_size", 15)
         destination_box.add_child(empty)
 
+func _add_map_marker(id: String, entry: Dictionary) -> void:
+    var marker := Button.new()
+    marker.text = "◆"
+    marker.tooltip_text = str(entry.title)
+    marker.focus_mode = Control.FOCUS_NONE
+    marker.mouse_filter = Control.MOUSE_FILTER_STOP
+    marker.z_index = 10
+    marker.pressed.connect(_fast_travel.bind(id))
+    _style_marker(marker)
+    panel.add_child(marker)
+    marker_buttons.append(marker)
+
+func _style_marker(button: Button) -> void:
+    var normal := StyleBoxFlat.new()
+    normal.bg_color = Color(0.72, 0.48, 0.16, 0.95)
+    normal.border_color = Color(0.98, 0.88, 0.58, 1)
+    normal.set_border_width_all(2)
+    normal.set_corner_radius_all(18)
+    var hover := normal.duplicate() as StyleBoxFlat
+    hover.bg_color = Color(0.95, 0.74, 0.34, 1)
+    button.add_theme_stylebox_override("normal", normal)
+    button.add_theme_stylebox_override("hover", hover)
+    button.add_theme_stylebox_override("pressed", hover)
+    button.add_theme_color_override("font_color", Color(0.16, 0.12, 0.06, 1))
+    button.add_theme_font_size_override("font_size", 14)
+
+func _position_map_markers() -> void:
+    if not map_art or not discovery:
+        return
+    for marker in marker_buttons:
+        if not is_instance_valid(marker):
+            continue
+        var id := ""
+        for landmark_id in discovery.landmarks.keys():
+            var entry: Dictionary = discovery.landmarks[landmark_id]
+            if str(entry.title) == str(marker.tooltip_text):
+                id = str(landmark_id)
+                break
+        if id == "":
+            continue
+        var entry: Dictionary = discovery.landmarks[id]
+        var p: Vector3 = entry.position
+        var nx := clampf((p.x + 120.0) / 240.0, 0.04, 0.96)
+        var nz := clampf((p.z + 105.0) / 205.0, 0.06, 0.94)
+        var pos := Vector2(nx * map_art.size.x, nz * map_art.size.y)
+        marker.position = map_art.position + pos - Vector2(16, 16)
+        marker.size = Vector2(32, 32)
+
 func _fast_travel(id: String) -> void:
     if player == null or discovery == null or not discovery.can_fast_travel_to(id):
         return
@@ -217,8 +273,7 @@ func _fast_travel(id: String) -> void:
     if destination == Vector3.INF:
         return
 
-    player.velocity = Vector3.ZERO
-    player.global_position = Vector3(destination.x, destination.y + 1.05, destination.z)
+    player.teleport_to(destination)
     close_map()
 
     var hud := get_node_or_null("../../GameHUD") as OdysseyGameHUD
@@ -255,6 +310,6 @@ func close_map() -> void:
     _open = false
     if panel:
         panel.visible = false
-    var controls := get_node_or_null("../MobileLayer/MobileControls") as OdysseyMobileControls
+    var controls := get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.set_overlay_active(false)
