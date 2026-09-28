@@ -79,47 +79,79 @@ func _make_terrain() -> void:
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
+    root.scale = Vector3(0.82, 0.82, 0.82)
+
     var trunk := MeshInstance3D.new()
     var trunk_mesh := CylinderMesh.new()
-    trunk_mesh.height = 3.4
-    trunk_mesh.top_radius = 0.18
-    trunk_mesh.bottom_radius = 0.38
+    trunk_mesh.height = 2.7
+    trunk_mesh.top_radius = 0.12
+    trunk_mesh.bottom_radius = 0.25
+    trunk_mesh.radial_segments = 8
     trunk.mesh = trunk_mesh
-    trunk.position.y = 1.7
-    trunk.material_override = _material(Color(0.27, 0.13, 0.055, 1))
+    trunk.position.y = 1.35
+    trunk.material_override = _material(Color(0.28, 0.15, 0.07, 1))
     root.add_child(trunk)
-    for data in [[Vector3(0,3.1,0),1.45,1.55],[Vector3(0.52,2.65,0.18),0.95,1.25],[Vector3(-0.55,2.45,-0.2),0.82,1.05]]:
+
+    var branch_a := MeshInstance3D.new()
+    var branch_mesh_a := CylinderMesh.new()
+    branch_mesh_a.height = 1.0
+    branch_mesh_a.top_radius = 0.05
+    branch_mesh_a.bottom_radius = 0.10
+    branch_mesh_a.radial_segments = 6
+    branch_a.mesh = branch_mesh_a
+    branch_a.position = Vector3(0.25, 1.65, 0)
+    branch_a.rotation_degrees = Vector3(0, 0, -48)
+    branch_a.material_override = _material(Color(0.25, 0.12, 0.05, 1))
+    root.add_child(branch_a)
+
+    var foliage := [
+        [Vector3(0, 2.15, 0), 1.15, 1.20],
+        [Vector3(0.38, 2.75, 0.10), 0.86, 1.05],
+        [Vector3(-0.34, 3.10, -0.08), 0.64, 0.82]
+    ]
+    for data in foliage:
         var crown := MeshInstance3D.new()
-        var crown_mesh := SphereMesh.new()
-        crown_mesh.radius = data[1]
-        crown_mesh.height = data[2]
+        var crown_mesh := CylinderMesh.new()
+        crown_mesh.top_radius = 0.08
+        crown_mesh.bottom_radius = float(data[1])
+        crown_mesh.height = float(data[2])
+        crown_mesh.radial_segments = 8
         crown.mesh = crown_mesh
         crown.position = data[0]
-        crown.material_override = _material(Color(0.08, 0.28, 0.12, 1))
+        crown.material_override = _material(Color(0.08, 0.30, 0.14, 1))
         root.add_child(crown)
-    var branch := MeshInstance3D.new()
-    var branch_mesh := CylinderMesh.new()
-    branch_mesh.height = 1.6
-    branch_mesh.top_radius = 0.07
-    branch_mesh.bottom_radius = 0.14
-    branch.mesh = branch_mesh
-    branch.rotation_degrees = Vector3(0, 0, -55)
-    branch.position = Vector3(0.35, 2.15, 0)
-    branch.material_override = _material(Color(0.25, 0.12, 0.05, 1))
-    root.add_child(branch)
-    _add_collision(root, Vector3(0, 1.7, 0), Vector3(0.8, 3.4, 0.8))
+
+    _add_collision(root, Vector3(0, 1.35, 0), Vector3(0.58, 2.7, 0.58))
 
 func _make_rock(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Stone", "Gather stone", _harvest_rock)
+    root.scale = Vector3(0.78, 0.78, 0.78)
+
     var mesh := MeshInstance3D.new()
-    var sphere := SphereMesh.new()
-    sphere.radius = 0.85
-    sphere.height = 1.4
-    mesh.mesh = sphere
-    mesh.scale = Vector3(1.4, 0.8, 1.0)
-    mesh.material_override = _material(Color(0.39, 0.41, 0.40, 1))
+    var rock := SphereMesh.new()
+    rock.radius = 0.72
+    rock.height = 1.10
+    rock.radial_segments = 8
+    rock.rings = 4
+    mesh.mesh = rock
+    mesh.scale = Vector3(1.35, 0.72, 1.05)
+    mesh.rotation_degrees = Vector3(-6, 18, 9)
+    mesh.material_override = _material(Color(0.34, 0.36, 0.35, 1))
     root.add_child(mesh)
-    _add_collision(root, Vector3(0, 0.5, 0), Vector3(1.6, 1, 1.6))
+
+    var chip := MeshInstance3D.new()
+    var chip_mesh := SphereMesh.new()
+    chip_mesh.radius = 0.34
+    chip_mesh.height = 0.50
+    chip_mesh.radial_segments = 6
+    chip_mesh.rings = 3
+    chip.mesh = chip_mesh
+    chip.position = Vector3(0.52, 0.28, -0.20)
+    chip.scale = Vector3(0.90, 0.62, 0.70)
+    chip.material_override = _material(Color(0.45, 0.46, 0.42, 1))
+    root.add_child(chip)
+
+    _add_collision(root, Vector3(0, 0.34, 0), Vector3(1.35, 0.68, 1.20))
 
 func _make_city(pos: Vector3) -> void:
     var root := Node3D.new()
@@ -237,21 +269,37 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     root.name = label
     root.position = pos
     add_child(root)
+
     var mesh := MeshInstance3D.new()
-    var sphere := SphereMesh.new()
-    sphere.radius = 1.0
-    sphere.height = 2.0
-    mesh.mesh = sphere
+    var terrain := CylinderMesh.new()
+    terrain.top_radius = 0.72
+    terrain.bottom_radius = 1.0
+    terrain.height = 2.0
+    terrain.radial_segments = 8
+    mesh.mesh = terrain
     mesh.scale = scale
+    mesh.rotation_degrees = Vector3(0, 11, 0)
     mesh.material_override = _material(color)
     root.add_child(mesh)
 
-    # Match the visible terrain with a scaled sphere collider so hills and outcrops are physical.
+    var shoulder := MeshInstance3D.new()
+    var shoulder_mesh := CylinderMesh.new()
+    shoulder_mesh.top_radius = 0.60
+    shoulder_mesh.bottom_radius = 0.86
+    shoulder_mesh.height = 1.2
+    shoulder_mesh.radial_segments = 8
+    shoulder.mesh = shoulder_mesh
+    shoulder.position = Vector3(0, 1.15 * scale.y, 0.15)
+    shoulder.scale = Vector3(scale.x * 0.72, scale.y * 0.45, scale.z * 0.72)
+    shoulder.material_override = _material(color.lightened(0.04))
+    root.add_child(shoulder)
+
     var body := StaticBody3D.new()
     root.add_child(body)
     var shape := CollisionShape3D.new()
-    var collision := SphereShape3D.new()
-    collision.radius = 1.0
+    var collision := CylinderShape3D.new()
+    collision.radius = 0.95
+    collision.height = 2.0
     shape.shape = collision
     shape.scale = scale
     body.add_child(shape)
@@ -311,30 +359,39 @@ func _make_cylinder_child(parent: Node3D, pos: Vector3, radius: float, height: f
 
 func _make_tree_child(parent: Node3D, pos: Vector3) -> void:
     var body := StaticBody3D.new()
-    body.position = pos + Vector3(0, 1.25, 0)
+    body.position = pos
     parent.add_child(body)
+
     var trunk := MeshInstance3D.new()
-    var mesh := CylinderMesh.new()
-    mesh.height = 2.5
-    mesh.top_radius = 0.22
-    mesh.bottom_radius = 0.38
-    trunk.mesh = mesh
-    trunk.material_override = _material(Color(0.30,0.17,0.07,1))
+    var trunk_mesh := CylinderMesh.new()
+    trunk_mesh.height = 2.2
+    trunk_mesh.top_radius = 0.10
+    trunk_mesh.bottom_radius = 0.22
+    trunk_mesh.radial_segments = 8
+    trunk.mesh = trunk_mesh
+    trunk.position.y = 1.1
+    trunk.material_override = _material(Color(0.28, 0.15, 0.07, 1))
     body.add_child(trunk)
+
+    for data in [[Vector3(0,1.9,0),0.95,1.0],[Vector3(0.22,2.45,0.08),0.70,0.82]]:
+        var crown := MeshInstance3D.new()
+        var crown_mesh := CylinderMesh.new()
+        crown_mesh.top_radius = 0.05
+        crown_mesh.bottom_radius = float(data[1])
+        crown_mesh.height = float(data[2])
+        crown_mesh.radial_segments = 8
+        crown.mesh = crown_mesh
+        crown.position = data[0]
+        crown.material_override = _material(Color(0.08, 0.30, 0.14, 1))
+        body.add_child(crown)
+
     var shape := CollisionShape3D.new()
     var collision := CylinderShape3D.new()
-    collision.radius = 0.38
-    collision.height = 2.5
+    collision.radius = 0.24
+    collision.height = 2.2
     shape.shape = collision
+    shape.position = Vector3(0, 1.1, 0)
     body.add_child(shape)
-    var crown := MeshInstance3D.new()
-    var sphere := SphereMesh.new()
-    sphere.radius = 1.15
-    sphere.height = 2.1
-    crown.mesh = sphere
-    crown.position = pos + Vector3(0,2.8,0)
-    crown.material_override = _material(Color(0.10,0.31,0.15,1))
-    parent.add_child(crown)
 
 func _label(parent: Node3D, text: String, pos: Vector3) -> void:
     var label := Label3D.new()

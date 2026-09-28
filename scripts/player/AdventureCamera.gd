@@ -1,10 +1,10 @@
 class_name OdysseyAdventureCamera
 extends Node3D
 
-@export var height: float = 1.65
+@export var height: float = 1.30
 @export var sensitivity: float = 1.0
-@export var min_pitch: float = -0.55
-@export var max_pitch: float = 0.35
+@export var min_pitch: float = -0.62
+@export var max_pitch: float = 0.42
 @export var target_path: NodePath = NodePath("../Player")
 
 var yaw: float = 0.0
@@ -15,7 +15,7 @@ func _ready() -> void:
     _target = get_node_or_null(target_path) as Node3D
     if _target == null:
         push_warning("AdventureCamera target not found: " + str(target_path))
-    var controls := get_node_or_null("../UI/MobileControls") as OdysseyMobileControls
+    var controls := get_node_or_null("../UI/MobileLayer/MobileControls") as OdysseyMobileControls
     if controls:
         controls.camera_drag.connect(_on_camera_drag)
     _apply_camera_transform()
