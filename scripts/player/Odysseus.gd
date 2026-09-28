@@ -134,7 +134,6 @@ func _physics_ground(delta: float, world_direction: Vector3, current_speed: floa
     if is_on_floor():
         _last_ground_y = global_position.y
         apply_floor_snap()
-        _keep_body_on_ground()
     elif _find_steep_surface() and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
         climbing = true
 
@@ -219,7 +218,7 @@ func teleport_to(destination: Vector3) -> void:
     query.exclude = [get_rid()]
     var hit := space.intersect_ray(query)
     if not hit.is_empty():
-        global_position = hit.position + Vector3.UP * (PLAYER_HALF_HEIGHT + 0.06)
+        global_position = hit.position + Vector3.UP * (PLAYER_HALF_HEIGHT + 0.015)
     else:
         global_position = destination + Vector3.UP * PLAYER_HALF_HEIGHT
 
