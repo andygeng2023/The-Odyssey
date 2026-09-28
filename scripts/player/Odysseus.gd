@@ -18,6 +18,7 @@ var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
 var mobile_jump_requested := false
+var mobile_jump_buffer := 0.0
 var _recovering := false
 var _visual_time := 0.0
 var _visual_base_y := 0.0
@@ -37,6 +38,9 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
     _recover_if_out_of_bounds()
+    mobile_jump_buffer = maxf(0.0, mobile_jump_buffer - delta)
+    if mobile_jump_buffer > 0.0:
+        mobile_jump_requested = true
 
     var input_direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
     if mobile_controls and mobile_controls.move_vector.length_squared() > 0.01:
@@ -69,6 +73,7 @@ func _physics_process(delta: float) -> void:
     elif Input.is_action_just_pressed("jump") or mobile_jump_requested:
         velocity.y = jump_velocity
         mobile_jump_requested = false
+        mobile_jump_buffer = 0.0
     else:
         velocity.y = 0.0
 
@@ -133,8 +138,9 @@ func handle_mobile_action(action: String) -> void:
         "jump":
             if swimming:
                 velocity.y = 4.0
-            elif is_on_floor():
+            else:
                 mobile_jump_requested = true
+                mobile_jump_buffer = 0.28
         "sprint":
             mobile_sprint = not mobile_sprint
 
