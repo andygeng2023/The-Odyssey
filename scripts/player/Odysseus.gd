@@ -5,15 +5,15 @@ extends CharacterBody3D
 @onready var traversal: OdysseyTraversalSystem = $Traversal
 @onready var camera: OdysseyAdventureCamera = $"../CameraRig"
 
-const SAFE_SPAWN := Vector3(0.0, 1.05, 5.0)
+const SAFE_SPAWN := Vector3(0.0, 0.80, 5.0)
 const FALL_LIMIT := -7.0
 const WORLD_LIMIT := 75.0
 
 var climbing := false
 var swimming := false
 var gravity := 18.0
-var speed := 4.8
-var sprint_speed := 7.0
+var speed := 4.5
+var sprint_speed := 6.4
 var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
@@ -46,7 +46,7 @@ func _physics_process(delta: float) -> void:
     var world_direction := (right * input_direction.x + forward * input_direction.y).normalized() if input_direction.length_squared() > 0.0 else Vector3.ZERO
 
     swimming = global_position.z < -17.0
-    climbing = is_on_wall() and not is_on_floor() and not swimming and world_direction.length_squared() > 0.05
+    climbing = is_on_wall() and not is_on_floor() and not swimming and global_position.y > 0.85 and world_direction.length_squared() > 0.05
 
     var sprinting := Input.is_action_pressed("sprint") or mobile_sprint
     var current_speed := sprint_speed if sprinting else speed
