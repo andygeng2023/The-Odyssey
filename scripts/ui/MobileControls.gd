@@ -20,15 +20,25 @@ var _touch_roles: Dictionary = {}
 var _mouse_camera_active := false
 var _camera_last := Vector2.ZERO
 var _buttons: Dictionary = {}
+var _overlay_active := false
 
 func _ready() -> void:
-    # This control owns the complete mobile input surface. The visible Button
-    # nodes are visual only; handling the hit rectangles here makes touch and
-    # mouse behavior deterministic across web and mobile.
     mouse_filter = Control.MOUSE_FILTER_IGNORE
     process_mode = Node.PROCESS_MODE_ALWAYS
     set_process_input(true)
     _create_action_buttons()
+    queue_redraw()
+
+func set_overlay_active(active: bool) -> void:
+    _overlay_active = active
+    set_process_input(not active)
+    if active:
+        move_vector = Vector2.ZERO
+        _touch_roles.clear()
+        _mouse_camera_active = false
+    for id: String in _buttons.keys():
+        var button: Button = _buttons[id] as Button
+        button.visible = not active
     queue_redraw()
 
 func _notification(what: int) -> void:
@@ -42,7 +52,7 @@ func _create_action_buttons() -> void:
         button.focus_mode = Control.FOCUS_NONE
         button.mouse_filter = Control.MOUSE_FILTER_STOP
         button.z_index = 100
-        button.button_down.connect(_on_button_pressed.bind(id))
+        button.pressed.connect(_on_button_pressed.bind(id))
         button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
         add_child(button)
         _buttons[id] = button
@@ -69,7 +79,8 @@ func _style_action_buttons() -> void:
         button.add_theme_color_override("font_pressed_color", Color(1, 0.98, 0.90, 1))
 
 func _process(_delta: float) -> void:
-    _layout_buttons()
+    if not _overlay_active:
+        _layout_buttons()
 
 func _layout_buttons() -> void:
     if _buttons.is_empty():
@@ -113,6 +124,8 @@ func _camera_zone(point: Vector2) -> bool:
     return point.x >= size.x * CAMERA_START_X and _button_at(point) == ""
 
 func _on_button_pressed(button: String) -> void:
+    if _overlay_active:
+        return
     if button == "map":
         var map_ui := get_node_or_null("../../MapLayer/MapUI") as OdysseyMapUI
         if map_ui:
@@ -126,15 +139,16 @@ func _on_button_pressed(button: String) -> void:
         return
     action_pressed.emit(button)
 
-func _on_gui_button_pressed(button: String) -> void:
-    _on_button_pressed(button)
-
 func _input(event: InputEvent) -> void:
-    # Read the viewport-level input before any child Control can consume it.
-    # This is the authoritative route for touch/click gameplay controls.
+    if _overlay_active:
+        return
+
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
+            var button := _button_at(touch.position)
+            if button != "":
+                return
             var joystick := _joystick_center()
             if touch.position.distance_to(joystick) <= JOYSTICK_RADIUS and not _touch_roles.has(touch.index):
                 _touch_roles[touch.index] = "move"
@@ -173,14 +187,15 @@ func _input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
         if event.pressed:
+            if _button_at(event.position) != "":
+                return
             if _camera_zone(event.position):
                 _mouse_camera_active = true
                 _camera_last = event.position
                 get_viewport().set_input_as_handled()
-        else:
-            if _mouse_camera_active:
-                _mouse_camera_active = false
-                get_viewport().set_input_as_handled()
+        elif _mouse_camera_active:
+            _mouse_camera_active = false
+            get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion and _mouse_camera_active:
         var motion := event as InputEventMouseMotion
         if motion.relative.length_squared() > 1.0:
@@ -189,8 +204,6 @@ func _input(event: InputEvent) -> void:
 
 func _draw() -> void:
     var center := _joystick_center()
-    # move_vector uses gameplay coordinates (up = positive Y), while canvas
-    # coordinates use down = positive Y. Flip only when drawing the knob.
     var visual_vector := Vector2(move_vector.x, -move_vector.y)
     var knob := center + visual_vector * JOYSTICK_RADIUS * 0.52
     draw_circle(center, JOYSTICK_RADIUS, Color(0.025, 0.04, 0.07, 0.50))
