@@ -39,7 +39,7 @@ func _ready() -> void:
     floor_snap_length = 0.55
     _visual_base_y = $Body.position.y
     floor_stop_on_slope = true
-    floor_max_angle = deg_to_rad(48.0)
+    floor_max_angle = deg_to_rad(60.0)
     safe_margin = 0.08
     up_direction = Vector3.UP
     water_volume = get_tree().get_first_node_in_group("water_volume") as OdysseyWaterVolume
@@ -106,6 +106,11 @@ func _physics_process(delta: float) -> void:
 
     move_and_slide()
 
+    if not swimming:
+        var steep_surface := _find_steep_surface()
+        if steep_surface and world_direction.length_squared() > 0.01 and traversal.can_continue_traversal():
+            climbing = true
+
     if not swimming and is_on_floor():
         apply_floor_snap()
 
@@ -115,6 +120,8 @@ func _physics_process(delta: float) -> void:
         survival.tick(delta, world_direction.length_squared() > 0.01, false, swimming, underwater)
     if traversal.stamina <= 0.0:
         climbing = false
+    if climbing:
+        velocity.y = maxf(velocity.y, 2.6)
     if is_on_floor() and get_floor_angle() > deg_to_rad(42.0):
         var slope_normal := get_floor_normal()
         var slope_force := Vector3.DOWN - slope_normal * Vector3.DOWN.dot(slope_normal)
@@ -123,6 +130,15 @@ func _physics_process(delta: float) -> void:
     _animate_character(delta, world_direction.length_squared() > 0.001)
     if world_direction.length_squared() > 0.001:
         rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
+
+func _find_steep_surface() -> bool:
+    for i in get_slide_collision_count():
+        var collision := get_slide_collision(i)
+        var normal := collision.get_normal()
+        var angle := rad_to_deg(acos(clampf(normal.dot(Vector3.UP), -1.0, 1.0)))
+        if angle > 60.0 and angle < 89.5:
+            return true
+    return false
 
 func _animate_character(delta: float, moving: bool) -> void:
     _visual_time += delta
