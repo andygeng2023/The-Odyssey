@@ -79,6 +79,8 @@ func _physics_process(delta: float) -> void:
         climbing = false
 
     _animate_character(delta, world_direction.length_squared() > 0.001)
+    if world_direction.length_squared() > 0.001:
+        rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
 
 func _animate_character(delta: float, moving: bool) -> void:
     _visual_time += delta
@@ -89,7 +91,7 @@ func _animate_character(delta: float, moving: bool) -> void:
     var right_arm := $RightArm as MeshInstance3D
     var left_leg := $LeftLeg as MeshInstance3D
     var right_leg := $RightLeg as MeshInstance3D
-    if not body or not head:
+    if body == null or head == null:
         return
     var stride := sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
     var bob := abs(stride) * 0.045 if moving else sin(_visual_time * 2.2) * 0.018
