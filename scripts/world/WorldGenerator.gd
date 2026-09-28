@@ -455,21 +455,29 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     root.add_child(body)
 
     var main_shape := CollisionShape3D.new()
-    var main_collision := CylinderShape3D.new()
-    main_collision.radius = scale.x
-    main_collision.height = scale.y * 2.0
+    var main_collision := ConvexPolygonShape3D.new()
+    main_collision.points = _landform_points(scale, 1.0, 0.72, 2.0)
     main_shape.shape = main_collision
     main_shape.rotation_degrees = Vector3(0, 11, 0)
     body.add_child(main_shape)
 
     var shoulder_shape := CollisionShape3D.new()
-    var shoulder_collision := CylinderShape3D.new()
-    shoulder_collision.radius = 0.86 * 0.72 * maxf(scale.x, scale.z)
-    shoulder_collision.height = 1.2 * 0.45 * scale.y
+    var shoulder_collision := ConvexPolygonShape3D.new()
+    var shoulder_scale := Vector3(scale.x * 0.72, scale.y * 0.45, scale.z * 0.72)
+    shoulder_collision.points = _landform_points(shoulder_scale, 0.86, 0.60, 1.2)
     shoulder_shape.shape = shoulder_collision
     shoulder_shape.position = Vector3(0, 1.15 * scale.y, 0.15)
     shoulder_shape.rotation_degrees = Vector3(0, 11, 0)
     body.add_child(shoulder_shape)
+
+func _landform_points(shape_scale: Vector3, bottom_radius: float, top_radius: float, height: float) -> PackedVector3Array:
+    var points := PackedVector3Array()
+    var segments := 12
+    for i in range(segments):
+        var a := TAU * float(i) / float(segments)
+        points.append(Vector3(cos(a) * bottom_radius * shape_scale.x, -height * 0.5, sin(a) * bottom_radius * shape_scale.z))
+        points.append(Vector3(cos(a) * top_radius * shape_scale.x, height * 0.5, sin(a) * top_radius * shape_scale.z))
+    return points
 
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, solid: bool) -> Node3D:
     var body: Node3D = StaticBody3D.new() if solid else Node3D.new()
