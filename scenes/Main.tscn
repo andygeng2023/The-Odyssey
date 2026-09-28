@@ -27,6 +27,7 @@
 [ext_resource path="res://scripts/ui/GameHUD.gd" type="Script" id="20"]
 [ext_resource path="res://scripts/ui/MobileControls.gd" type="Script" id="21"]
 [ext_resource path="res://scripts/ui/BackpackUI.gd" type="Script" id="22"]
+[ext_resource path="res://scripts/world/VisualPolish.gd" type="Script" id="28"]
 
 [sub_resource type="CapsuleShape3D" id="PlayerCapsule"]
 radius = 0.38
@@ -162,6 +163,9 @@ script = ExtResource("27")
 
 [node name="World" type="Node3D" parent="."]
 script = ExtResource("19")
+
+[node name="VisualPolish" type="Node" parent="."]
+script = ExtResource("28")
 
 [node name="Player" type="CharacterBody3D" parent="."]
 position = Vector3(0, 0.88, 5)
