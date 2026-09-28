@@ -548,7 +548,7 @@ func _discover_realm(discovery_id: String, title: String, _node: Node = null, _p
     discovery.discover(discovery_id, "mythic_realms")
     var realms := get_parent().get_node_or_null("Systems/Realms") as OdysseyRealmSystem
     if realms:
-        realms.enter(discovery_id)
+        realms.enter("underworld" if title == "Underworld" else ("heavens" if title == "Heavens" else "aegean"))
     _message(title + " discovered. The realm is now a destination rather than a forced story corridor.")
 
 func _discover_calypso(_node: Node, _player: Node = null) -> void:
