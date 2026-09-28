@@ -19,6 +19,8 @@ func build_shore(p_inventory: OdysseyInventory, p_discovery: OdysseyDiscoverySys
         _make_tree(p)
     for p in [Vector3(-20,0,3), Vector3(-16,0,8), Vector3(13,0,18), Vector3(22,0,10), Vector3(2,0,22), Vector3(-30,0,8)]:
         _make_rock(p)
+    for data in [[Vector3(-9,0,2), "Fiber", "fiber", 3], [Vector3(-5,0,12), "Herbs", "herb", 2], [Vector3(9,0,9), "Fruit tree", "fruit", 2], [Vector3(15,0,-3), "Shells", "shell", 2], [Vector3(-18,0,-5), "Flint", "flint", 1]]:
+        _make_resource_patch(data[0], data[1], data[2], int(data[3]))
     _make_interactable(Vector3(-3, 0.75, -1), "Campfire site", "Build campfire", _build_campfire)
     _make_interactable(Vector3(7, 0.5, -10), "Raft worksite", "Build raft", _build_raft)
     _make_interactable(Vector3(17, 0.45, -2), "Bridge site", "Build bridge", _build_bridge)
@@ -95,6 +97,24 @@ func _make_terrain() -> void:
     _make_box("CliffFace", Vector3(0, 1.15, 24), Vector3(72, 2.3, 1.2), Color(0.22, 0.24, 0.23, 1), true)
     for x in [-30.0, -22.0, -14.0, -5.0, 5.0, 14.0, 23.0, 31.0]:
         _make_landform("RockOutcrop", Vector3(x, 0.65, 19.0 + sin(x) * 2.0), Vector3(3.2, 1.3, 2.4), Color(0.40, 0.39, 0.34, 1))
+
+func _make_resource_patch(pos: Vector3, title: String, resource_id: String, amount: int) -> void:
+    var root := _make_interactable(pos, title, "Gather " + resource_id, _gather_resource.bind(resource_id, amount))
+    var mesh := MeshInstance3D.new()
+    var patch := SphereMesh.new()
+    patch.radius = 0.34
+    patch.height = 0.65
+    patch.radial_segments = 8
+    patch.rings = 4
+    mesh.mesh = patch
+    mesh.scale = Vector3(1.2, 0.7, 1.0)
+    mesh.material_override = _material(Color(0.28, 0.48, 0.18, 1))
+    root.add_child(mesh)
+
+func _gather_resource(_node: Node, _player: Node, resource_id: String, amount: int) -> void:
+    inventory.add_material(resource_id, amount)
+    _message("Gathered %d %s." % [amount, resource_id])
+    _node.queue_free()
 
 func _make_tree(pos: Vector3) -> void:
     var root := _make_interactable(pos, "Tree", "Harvest wood", _harvest_tree)
