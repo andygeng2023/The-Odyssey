@@ -448,8 +448,16 @@ func _make_landform(label: String, pos: Vector3, scale: Vector3, color: Color) -
     var body := StaticBody3D.new()
     root.add_child(body)
     var shape := CollisionShape3D.new()
-    var collision := BoxShape3D.new()
-    collision.size = Vector3(1.9 * scale.x, 2.0 * scale.y, 1.9 * scale.z)
+    var collision := ConvexPolygonShape3D.new()
+    var points := PackedVector3Array()
+    var segments := 12
+    for i in range(segments):
+        var a := TAU * float(i) / float(segments)
+        var r_bottom := 1.0
+        var r_top := 0.72
+        points.append(Vector3(cos(a) * r_bottom * scale.x, -scale.y, sin(a) * r_bottom * scale.z))
+        points.append(Vector3(cos(a) * r_top * scale.x, scale.y, sin(a) * r_top * scale.z))
+    collision.points = points
     shape.shape = collision
     body.add_child(shape)
 
