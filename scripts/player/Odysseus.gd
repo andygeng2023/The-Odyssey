@@ -18,9 +18,12 @@ var jump_velocity := 7.0
 var mobile_controls: OdysseyMobileControls
 var mobile_sprint := false
 var _recovering := false
+var _visual_time := 0.0
+var _visual_base_y := 0.0
 
 func _ready() -> void:
     floor_snap_length = 0.55
+    _visual_base_y = $Body.position.y
     floor_stop_on_slope = true
     floor_max_angle = deg_to_rad(48.0)
     safe_margin = 0.08
@@ -75,8 +78,35 @@ func _physics_process(delta: float) -> void:
     if traversal.stamina <= 0.0:
         climbing = false
 
-    if world_direction.length_squared() > 0.001:
-        rotation.y = lerp_angle(rotation.y, atan2(-world_direction.x, -world_direction.z), delta * 8.0)
+    _animate_character(delta, world_direction.length_squared() > 0.001)
+
+func _animate_character(delta: float, moving: bool) -> void:
+    _visual_time += delta
+    var body := $Body as MeshInstance3D
+    var head := $Head as MeshInstance3D
+    var cloak := $Cloak as MeshInstance3D
+    var left_arm := $LeftArm as MeshInstance3D
+    var right_arm := $RightArm as MeshInstance3D
+    var left_leg := $LeftLeg as MeshInstance3D
+    var right_leg := $RightLeg as MeshInstance3D
+    if not body or not head:
+        return
+    var stride := sin(_visual_time * 9.0) if moving else sin(_visual_time * 2.2) * 0.12
+    var bob := abs(stride) * 0.045 if moving else sin(_visual_time * 2.2) * 0.018
+    body.position.y = _visual_base_y + bob
+    head.position.y = 1.78 + bob * 0.7
+    if cloak:
+        cloak.rotation_degrees.z = sin(_visual_time * 5.0) * (2.5 if moving else 0.8)
+    if moving:
+        left_arm.rotation_degrees.z = 10.0 + stride * 12.0
+        right_arm.rotation_degrees.z = -10.0 - stride * 12.0
+        left_leg.rotation_degrees.x = stride * 12.0
+        right_leg.rotation_degrees.x = -stride * 12.0
+    else:
+        left_arm.rotation_degrees.z = lerpf(left_arm.rotation_degrees.z, 10.0, delta * 5.0)
+        right_arm.rotation_degrees.z = lerpf(right_arm.rotation_degrees.z, -10.0, delta * 5.0)
+        left_leg.rotation_degrees.x = lerpf(left_leg.rotation_degrees.x, 0.0, delta * 5.0)
+        right_leg.rotation_degrees.x = lerpf(right_leg.rotation_degrees.x, 0.0, delta * 5.0)
 
 func _recover_if_out_of_bounds() -> void:
     if _recovering:
