@@ -15,5 +15,10 @@ Vec3 Game::cameraPosition() const{
               player_.position.z-std::cos(cameraYaw_)*cp*d};
  return physics_.cameraPosition(target,desired,0.28f);
 }
+Vec3 Game::cameraPosition() const{
+ const Vec3 target=player_.position+Vec3{0.0f,0.65f,0.0f}; const float d=7.0f,cp=std::cos(cameraPitch_);
+ Vec3 desired{player_.position.x-std::sin(cameraYaw_)*cp*d,player_.position.y+std::sin(cameraPitch_)*d+1.5f,player_.position.z-std::cos(cameraYaw_)*cp*d};
+ return physics_.cameraPosition(target,desired,0.28f);
+}
 void Game::run(){while(!WindowShouldClose()){update(GetFrameTime());BeginDrawing();renderer_.draw(player_,cameraYaw_,cameraPitch_,cameraPosition());EndDrawing();}CloseWindow();}
 }
