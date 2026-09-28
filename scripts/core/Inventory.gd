@@ -107,6 +107,12 @@ func get_category_entries(category: String) -> Array[Dictionary]:
         "Equipment":
             for id in equipment:
                 result.append(_entry(id, 1))
+        "Blueprints":
+            for id in blueprints:
+                result.append({"id": id, "name": str(blueprints[id]), "description": "A discovered construction design.", "amount": 1})
+        "Important":
+            for id in important:
+                result.append({"id": id, "name": id.replace("_", " ").capitalize(), "description": "A story or discovery item that should not be lost.", "amount": 1})
     return result
 
 func _entry(id: String, amount: int) -> Dictionary:
