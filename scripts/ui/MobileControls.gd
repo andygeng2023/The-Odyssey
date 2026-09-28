@@ -42,7 +42,7 @@ func _create_action_buttons() -> void:
         button.focus_mode = Control.FOCUS_NONE
         button.mouse_filter = Control.MOUSE_FILTER_STOP
         button.z_index = 100
-        button.button_down.connect(_on_button_pressed.bind(id))
+        button.pressed.connect(_on_button_pressed.bind(id))
         button.add_theme_font_size_override("font_size", 13 if id != "backpack" else 12)
         add_child(button)
         _buttons[id] = button
