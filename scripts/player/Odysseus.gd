@@ -193,6 +193,9 @@ func _keep_body_on_ground() -> void:
     var hit := space.intersect_ray(query)
     if hit.is_empty():
         return
+    var normal: Vector3 = hit.normal
+    if normal.dot(Vector3.UP) < 0.72:
+        return
     var point: Vector3 = hit.position
     var desired_y := point.y + PLAYER_HALF_HEIGHT
     if absf(desired_y - global_position.y) > 0.015 and desired_y <= global_position.y + 0.25:
