@@ -1,12 +1,12 @@
 # The Odyssey — Own Engine Architecture
 
-The Godot prototype is now treated as legacy reference. The active runtime is a small C++ engine owned by this project.
+The active runtime is a game-specific C++ engine owned by this project.
 
 ## Boundary
 
 The Odyssey engine owns player movement, collision response, step-up traversal, climbing state, swimming, camera control, world simulation, and game rendering orchestration.
 
-Raylib is only the low-level window/input/graphics backend in the first implementation. Game rules do not depend on Godot.
+Raylib is only the low-level window/input/graphics backend in the first implementation. Game rules do not depend on the backend.
 
 ## Runtime
 
@@ -23,7 +23,7 @@ The player is a continuous capsule-like body. Each fixed frame:
 4. If blocked, test a controlled vertical lift up to stepHeight and then test forward clearance.
 5. If a climbable surface is detected by lower/upper body probes, enter climbing instead of jumping.
 6. Water switches to a separate buoyant controller.
-7. Ground contact resolves against one continuous base plane.
+7. Ground contact resolves against the world collision surface.
 
 There is no post-move global-Y correction pass.
 
