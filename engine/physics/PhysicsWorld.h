@@ -15,6 +15,7 @@ public:
  void addBox(const BoxCollider& b); void addRamp(const RampCollider& r);
  void step(PlayerBody& p, Vec3 wish, float dt, bool jump, bool sprint);
  bool isWater(float x,float z) const;
+ Vec3 cameraPosition(const Vec3& target,const Vec3& desired,float radius) const;
 private:
  std::vector<BoxCollider> boxes_; std::vector<RampCollider> ramps_;
  bool collidesAt(const PlayerBody& p,const Vec3& pos) const;
