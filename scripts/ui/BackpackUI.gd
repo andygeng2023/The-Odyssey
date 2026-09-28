@@ -1,20 +1,26 @@
 class_name OdysseyBackpackUI
 extends Control
 
-const PANEL_MARGIN := 42.0
-const PREVIEW_RATIO := 0.30
-const TAB_HEIGHT := 52.0
-const ROW_HEIGHT := 72.0
+const TAB_HEIGHT := 48.0
+const CARD_HEIGHT := 86.0
+const PREVIEW_RATIO := 0.31
 
 var inventory: OdysseyInventory
 var tabs: Array[Button] = []
-var item_list: VBoxContainer
-var list_scroll: ScrollContainer
+var tabs_scroll: ScrollContainer
+var tabs_box: HBoxContainer
+var item_scroll: ScrollContainer
+var item_grid: GridContainer
 var count_label: Label
-var hint_label: Label
+var detail_title: Label
+var detail_text: Label
+var carry_button: Button
 var close_button: Button
 var _active_tab := "Foodstuff"
+var _selected_id := ""
+var _selected_entry: Dictionary = {}
 var _mobile_controls: OdysseyMobileControls
+
 var preview_container: SubViewportContainer
 var preview_viewport: SubViewport
 var preview_camera: Camera3D
@@ -24,9 +30,9 @@ const TAB_DEFINITIONS := [
     ["Foodstuff", "FOOD"],
     ["Materials", "MATERIALS"],
     ["Other", "OTHER"],
-    ["Equipment", "EQUIPMENT"],
-    ["Blueprints", "BLUEPRINTS"],
-    ["Important", "IMPORTANT"]
+    ["Equipment", "EQUIP"],
+    ["Blueprints", "PLANS"],
+    ["Important", "QUEST"]
 ]
 
 func _ready() -> void:
@@ -35,9 +41,6 @@ func _ready() -> void:
     visible = false
     set_process_input(true)
     _mobile_controls = get_node_or_null("../../MobileLayer/MobileControls") as OdysseyMobileControls
-    if _mobile_controls:
-        if not _mobile_controls.backpack_pressed.is_connected(toggle):
-            _mobile_controls.backpack_pressed.connect(toggle)
     _build_ui()
     _build_3d_preview()
     queue_redraw()
@@ -52,46 +55,82 @@ func _build_ui() -> void:
     close_button = Button.new()
     close_button.text = "CLOSE  [B]"
     close_button.focus_mode = Control.FOCUS_NONE
-    close_button.add_theme_font_size_override("font_size", 16)
     close_button.pressed.connect(close)
+    _style_button(close_button, false)
     add_child(close_button)
 
     count_label = Label.new()
     count_label.add_theme_font_size_override("font_size", 15)
-    count_label.add_theme_color_override("font_color", Color(0.78, 0.72, 0.57, 1))
+    count_label.add_theme_color_override("font_color", Color(0.87, 0.80, 0.62, 1))
     add_child(count_label)
 
-    hint_label = Label.new()
-    hint_label.text = "Ordinary resources are effectively unlimited. Equipment uses carrying capacity."
-    hint_label.add_theme_font_size_override("font_size", 14)
-    hint_label.add_theme_color_override("font_color", Color(0.67, 0.70, 0.72, 1))
-    add_child(hint_label)
+    tabs_scroll = ScrollContainer.new()
+    tabs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    tabs_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    tabs_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+    add_child(tabs_scroll)
+
+    tabs_box = HBoxContainer.new()
+    tabs_box.add_theme_constant_override("separation", 7)
+    tabs_scroll.add_child(tabs_box)
 
     for definition in TAB_DEFINITIONS:
         var button := Button.new()
         button.text = definition[1]
+        button.custom_minimum_size = Vector2(94, TAB_HEIGHT)
         button.focus_mode = Control.FOCUS_NONE
-        button.add_theme_font_size_override("font_size", 13)
-        var tab_style := StyleBoxFlat.new()
-        tab_style.bg_color = Color(0.12,0.13,0.11,0.94)
-        tab_style.border_color = Color(0.42,0.34,0.20,0.9)
-        tab_style.set_border_width_all(1)
-        tab_style.set_corner_radius_all(8)
-        button.add_theme_stylebox_override("normal", tab_style)
-        button.add_theme_stylebox_override("hover", tab_style.duplicate())
-        button.add_theme_color_override("font_color", Color(0.88,0.82,0.68,1))
-        button.button_down.connect(_select_tab.bind(definition[0]))
-        add_child(button)
+        button.pressed.connect(_select_tab.bind(definition[0]))
+        _style_button(button, definition[0] == _active_tab)
+        tabs_box.add_child(button)
         tabs.append(button)
 
-    list_scroll = ScrollContainer.new()
-    list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-    list_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-    list_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
-    add_child(list_scroll)
-    item_list = VBoxContainer.new()
-    item_list.add_theme_constant_override("separation", 8)
-    list_scroll.add_child(item_list)
+    item_scroll = ScrollContainer.new()
+    item_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    item_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    item_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+    add_child(item_scroll)
+
+    item_grid = GridContainer.new()
+    item_grid.columns = 2
+    item_grid.add_theme_constant_override("h_separation", 9)
+    item_grid.add_theme_constant_override("v_separation", 9)
+    item_scroll.add_child(item_grid)
+
+    detail_title = Label.new()
+    detail_title.text = "SELECT AN ITEM"
+    detail_title.add_theme_font_size_override("font_size", 18)
+    detail_title.add_theme_color_override("font_color", Color(0.94, 0.86, 0.66, 1))
+    add_child(detail_title)
+
+    detail_text = Label.new()
+    detail_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    detail_text.add_theme_font_size_override("font_size", 13)
+    detail_text.add_theme_color_override("font_color", Color(0.68, 0.70, 0.68, 1))
+    add_child(detail_text)
+
+    carry_button = Button.new()
+    carry_button.text = "CARRY"
+    carry_button.focus_mode = Control.FOCUS_NONE
+    carry_button.pressed.connect(_carry_selected)
+    _style_button(carry_button, true)
+    add_child(carry_button)
+
+func _style_button(button: Button, selected: bool) -> void:
+    var normal := StyleBoxFlat.new()
+    normal.bg_color = Color(0.20, 0.25, 0.28, 0.98) if not selected else Color(0.48, 0.37, 0.20, 1)
+    normal.border_color = Color(0.83, 0.70, 0.42, 0.95)
+    normal.set_border_width_all(2 if selected else 1)
+    normal.set_corner_radius_all(9)
+    var hover := normal.duplicate() as StyleBoxFlat
+    hover.bg_color = Color(0.30, 0.34, 0.35, 1)
+    var pressed := hover.duplicate() as StyleBoxFlat
+    pressed.bg_color = Color(0.55, 0.43, 0.22, 1)
+    button.add_theme_stylebox_override("normal", normal)
+    button.add_theme_stylebox_override("hover", hover)
+    button.add_theme_stylebox_override("pressed", pressed)
+    button.add_theme_stylebox_override("focus", hover)
+    button.add_theme_color_override("font_color", Color(0.96, 0.91, 0.78, 1))
+    button.add_theme_font_size_override("font_size", 13)
 
 func _process(_delta: float) -> void:
     if visible:
@@ -100,58 +139,71 @@ func _process(_delta: float) -> void:
 
 func _layout() -> void:
     var s := size
-    var left := s.x * 0.04
-    var top := s.y * 0.07
-    var width := s.x * 0.92
-    var height := s.y * 0.86
-    close_button.position = Vector2(left + width - 152.0, top + 20.0)
-    close_button.size = Vector2(132.0, 38.0)
-    count_label.position = Vector2(left + width - 360.0, top + 30.0)
-    count_label.size = Vector2(190.0, 24.0)
-    hint_label.position = Vector2(left + 24.0, top + height - 42.0)
-    hint_label.size = Vector2(width - 48.0, 26.0)
+    var left := s.x * 0.035
+    var top := s.y * 0.055
+    var width := s.x * 0.93
+    var height := s.y * 0.89
 
-    var content_left := left + width * PREVIEW_RATIO + 22.0
-    var content_top := top + 132.0
-    var content_width := width * (1.0 - PREVIEW_RATIO) - 44.0
-    var content_height := height - 190.0
-    var tab_width := content_width / float(tabs.size())
-    for i in tabs.size():
-        tabs[i].position = Vector2(content_left + i * tab_width, top + 78.0)
-        tabs[i].size = Vector2(tab_width - 5.0, TAB_HEIGHT)
-    list_scroll.position = Vector2(content_left, content_top)
-    list_scroll.size = Vector2(content_width, content_height)
-    item_list.position = Vector2.ZERO
-    item_list.size = Vector2(content_width, maxf(content_height, item_list.get_combined_minimum_size().y))
+    close_button.position = Vector2(left + width - 142, top + 18)
+    close_button.size = Vector2(122, 38)
+    count_label.position = Vector2(left + width - 340, top + 27)
+    count_label.size = Vector2(180, 24)
+
+    var content_top := top + 92
+    var content_bottom := top + height - 26
+    var content_height := content_bottom - content_top
+    var preview_width := clampf(width * PREVIEW_RATIO, 230.0, 360.0)
+    var right_left := left + preview_width + 18
+    var right_width := width - preview_width - 18
+
+    tabs_scroll.position = Vector2(right_left, content_top)
+    tabs_scroll.size = Vector2(right_width, TAB_HEIGHT)
+    tabs_box.size = Vector2(maxf(right_width, tabs_box.get_combined_minimum_size().x), TAB_HEIGHT)
+
+    var detail_height := 92.0
+    item_scroll.position = Vector2(right_left, content_top + TAB_HEIGHT + 10)
+    item_scroll.size = Vector2(right_width, content_height - TAB_HEIGHT - detail_height - 24)
+
+    var columns_width := maxf(120.0, (right_width - 9.0) / 2.0)
+    for child in item_grid.get_children():
+        if child is Control:
+            child.custom_minimum_size = Vector2(columns_width, CARD_HEIGHT)
+
+    detail_title.position = Vector2(right_left, content_bottom - detail_height)
+    detail_title.size = Vector2(right_width - 122, 28)
+    detail_text.position = Vector2(right_left, content_bottom - detail_height + 28)
+    detail_text.size = Vector2(right_width - 122, 58)
+    carry_button.position = Vector2(right_left + right_width - 108, content_bottom - 54)
+    carry_button.size = Vector2(100, 40)
+
     if preview_container:
-        var preview_rect := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
+        var preview_rect := Rect2(left, content_top, preview_width - 8, content_height)
         preview_container.position = preview_rect.position
         preview_container.size = preview_rect.size
         preview_viewport.size = Vector2i(maxi(1, int(preview_rect.size.x)), maxi(1, int(preview_rect.size.y)))
         _position_preview_camera()
-    for child in item_list.get_children():
-        if child is Control:
-            child.custom_minimum_size = Vector2(content_width, ROW_HEIGHT)
 
 func _draw() -> void:
     var s := size
-    draw_rect(Rect2(Vector2.ZERO, s), Color(0.015,0.022,0.018,0.84))
-    draw_circle(Vector2(s.x * 0.10, s.y * 0.15), 180.0, Color(0.30,0.38,0.25,0.12))
-    draw_circle(Vector2(s.x * 0.92, s.y * 0.84), 220.0, Color(0.50,0.35,0.16,0.08))
-    var left := s.x * 0.04
-    var top := s.y * 0.07
-    var width := s.x * 0.92
-    var height := s.y * 0.86
-    _draw_panel(Rect2(left, top, width, height), Color(0.105,0.085,0.055,0.985), Color(0.86,0.69,0.37,0.98), 3.0, 22.0)
-    draw_string(ThemeDB.fallback_font, Vector2(left + 28.0, top + 43.0), "ODYSSEUS  •  BACKPACK", HORIZONTAL_ALIGNMENT_LEFT, 300.0, 28, Color(0.96, 0.88, 0.67, 1))
-    draw_string(ThemeDB.fallback_font, Vector2(left + 30.0, top + 67.0), "ODYSSEUS", HORIZONTAL_ALIGNMENT_LEFT, 300.0, 13, Color(0.60, 0.62, 0.60, 1))
+    draw_rect(Rect2(Vector2.ZERO, s), Color(0.012, 0.018, 0.026, 0.88))
+    var left := s.x * 0.035
+    var top := s.y * 0.055
+    var width := s.x * 0.93
+    var height := s.y * 0.89
 
-    var preview := Rect2(left + 22.0, top + 88.0, width * PREVIEW_RATIO - 10.0, height - 138.0)
-    _draw_panel(preview, Color(0.025, 0.034, 0.043, 1), Color(0.36, 0.31, 0.22, 1), 1.0, 14.0)
-    draw_string(ThemeDB.fallback_font, preview.position + Vector2(20.0, 34.0), "EQUIPMENT", HORIZONTAL_ALIGNMENT_LEFT, 220.0, 17, Color(0.88, 0.80, 0.63, 1))
+    _draw_panel(Rect2(left, top, width, height), Color(0.075, 0.105, 0.125, 0.985), Color(0.86, 0.70, 0.39, 0.98), 3.0, 22.0)
+    draw_string(ThemeDB.fallback_font, Vector2(left + 26, top + 44), "ADVENTURE POUCH", HORIZONTAL_ALIGNMENT_LEFT, 330, 28, Color(0.97, 0.89, 0.69, 1))
+    draw_string(ThemeDB.fallback_font, Vector2(left + 28, top + 67), "ODYSSEUS  •  TRAVEL KIT", HORIZONTAL_ALIGNMENT_LEFT, 330, 12, Color(0.61, 0.68, 0.70, 1))
 
-    var right := Rect2(left + width * PREVIEW_RATIO + 10.0, top + 88.0, width * (1.0 - PREVIEW_RATIO) - 32.0, height - 138.0)
-    _draw_panel(right, Color(0.035, 0.037, 0.038, 0.96), Color(0.25, 0.25, 0.23, 1), 1.0, 14.0)
+    var content_top := top + 92
+    var content_height := height - 118
+    var preview_width := clampf(width * PREVIEW_RATIO, 230.0, 360.0)
+    var preview := Rect2(left, content_top, preview_width - 8, content_height)
+    _draw_panel(preview, Color(0.055, 0.075, 0.085, 1), Color(0.37, 0.44, 0.45, 1), 1.0, 16.0)
+    draw_string(ThemeDB.fallback_font, preview.position + Vector2(18, 30), "ODYSSEUS", HORIZONTAL_ALIGNMENT_LEFT, 200, 16, Color(0.89, 0.82, 0.65, 1))
+
+    var right := Rect2(left + preview_width + 18, content_top, width - preview_width - 18, content_height)
+    _draw_panel(right, Color(0.045, 0.060, 0.068, 0.96), Color(0.25, 0.31, 0.33, 1), 1.0, 16.0)
 
 func _draw_panel(rect: Rect2, fill: Color, border: Color, border_width: float, radius: float) -> void:
     var style := StyleBoxFlat.new()
@@ -177,16 +229,15 @@ func _build_3d_preview() -> void:
     var environment := WorldEnvironment.new()
     var env := Environment.new()
     env.background_mode = Environment.BG_COLOR
-    env.background_color = Color(0.018, 0.024, 0.032, 1.0)
+    env.background_color = Color(0.025, 0.035, 0.045, 1)
     env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color = Color(0.72, 0.76, 0.82, 1.0)
-    env.ambient_light_energy = 1.15
+    env.ambient_light_color = Color(0.75, 0.79, 0.84, 1)
+    env.ambient_light_energy = 1.2
     env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
     environment.environment = env
     preview_viewport.add_child(environment)
 
     preview_root = Node3D.new()
-    preview_root.name = "OdysseusPreview"
     preview_viewport.add_child(preview_root)
 
     var source := get_tree().get_first_node_in_group("odyssey_player") as Node3D
@@ -197,37 +248,30 @@ func _build_3d_preview() -> void:
                 visual.process_mode = Node.PROCESS_MODE_DISABLED
                 visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
                 preview_root.add_child(visual)
-    else:
-        push_warning("Backpack preview could not find the live player model.")
 
     var key := DirectionalLight3D.new()
-    key.rotation_degrees = Vector3(-24.0, 150.0, 0.0)
+    key.rotation_degrees = Vector3(-24, 150, 0)
     key.light_energy = 1.8
-    key.shadow_enabled = false
     preview_viewport.add_child(key)
 
     var fill := DirectionalLight3D.new()
-    fill.rotation_degrees = Vector3(-10.0, -35.0, 0.0)
+    fill.rotation_degrees = Vector3(-10, -35, 0)
     fill.light_energy = 0.65
-    fill.shadow_enabled = false
     preview_viewport.add_child(fill)
 
     preview_camera = Camera3D.new()
-    preview_camera.fov = 35.0
+    preview_camera.fov = 35
     preview_camera.near = 0.02
-    preview_camera.far = 20.0
+    preview_camera.far = 20
     preview_viewport.add_child(preview_camera)
     _position_preview_camera()
 
 func _position_preview_camera() -> void:
     if not preview_camera or not preview_root or not preview_container:
         return
-    var height := maxf(1.0, preview_container.size.y)
-    var distance := clampf(height / 150.0, 2.4, 3.8)
-    preview_camera.position = Vector3(0.0, 1.18, -distance)
-    preview_camera.look_at(Vector3(0.0, 1.08, 0.0), Vector3.UP)
-    preview_root.position = Vector3(0.0, 0.0, 0.0)
-    preview_root.rotation = Vector3.ZERO
+    var distance := clampf(preview_container.size.y / 150.0, 2.4, 3.8)
+    preview_camera.position = Vector3(0, 1.18, -distance)
+    preview_camera.look_at(Vector3(0, 1.05, 0), Vector3.UP)
 
 func _sync_3d_preview() -> void:
     if not preview_root:
@@ -245,9 +289,24 @@ func _sync_3d_preview() -> void:
                 child.material_override = source_child.material_override
 
 func _input(event: InputEvent) -> void:
-    if event.is_action_pressed("backpack"):
-        toggle()
+    if not visible:
+        return
+    if event.is_action_pressed("backpack") or event.is_action_pressed("ui_cancel"):
+        close()
         get_viewport().set_input_as_handled()
+
+func open() -> void:
+    visible = true
+    if _mobile_controls:
+        _mobile_controls.set_overlay_active(true)
+    _refresh()
+    queue_redraw()
+
+func close() -> void:
+    visible = false
+    if _mobile_controls:
+        _mobile_controls.set_overlay_active(false)
+    queue_redraw()
 
 func toggle() -> void:
     if visible:
@@ -255,122 +314,90 @@ func toggle() -> void:
     else:
         open()
 
-func open() -> void:
-    visible = true
-    if _mobile_controls:
-        _mobile_controls.visible = false
-    _refresh()
-    queue_redraw()
-
-func close() -> void:
-    visible = false
-    if _mobile_controls:
-        _mobile_controls.visible = true
-    queue_redraw()
-
 func _select_tab(tab_name: String) -> void:
-    if tab_name == _active_tab:
-        return
     _active_tab = tab_name
+    _selected_id = ""
+    _selected_entry = {}
     for i in tabs.size():
-        var selected: bool = TAB_DEFINITIONS[i][0] == _active_tab
-        tabs[i].disabled = selected
+        _style_button(tabs[i], TAB_DEFINITIONS[i][0] == _active_tab)
     _refresh()
 
 func _refresh() -> void:
-    if not item_list or not inventory:
+    if not item_grid or not inventory:
         return
-    for child in item_list.get_children():
+    for child in item_grid.get_children():
         child.queue_free()
+
     var entries: Array[Dictionary] = inventory.get_category_entries(_active_tab)
     if entries.is_empty():
         var empty := Label.new()
-        empty.text = "Nothing here yet. Explore, gather and discover."
-        empty.add_theme_font_size_override("font_size", 18)
-        empty.add_theme_color_override("font_color", Color(0.62, 0.64, 0.63, 1))
-        empty.custom_minimum_size = Vector2(0, ROW_HEIGHT)
-        item_list.add_child(empty)
+        empty.text = "Nothing here yet.\nExplore, gather and discover."
+        empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        empty.add_theme_font_size_override("font_size", 17)
+        empty.add_theme_color_override("font_color", Color(0.62, 0.66, 0.67, 1))
+        item_grid.add_child(empty)
     else:
         for entry in entries:
-            item_list.add_child(_make_item_row(entry))
+            item_grid.add_child(_make_item_button(entry))
+
     if count_label:
         count_label.text = "CARRY  %d / %d" % [inventory.equipment.size(), inventory.equipment_capacity]
-    for i in tabs.size():
-        tabs[i].disabled = TAB_DEFINITIONS[i][0] == _active_tab
+
+    if _selected_id == "":
+        detail_title.text = "SELECT AN ITEM"
+        detail_text.text = "Choose an item to inspect it. Equipment can be carried from here."
+        carry_button.visible = false
+    else:
+        detail_title.text = str(_selected_entry.get("name", "ITEM"))
+        detail_text.text = str(_selected_entry.get("description", ""))
+        carry_button.visible = _active_tab == "Equipment"
+        carry_button.disabled = inventory.equipment.has(_selected_id) or inventory.equipment.size() >= inventory.equipment_capacity
+
     queue_redraw()
 
-func _make_item_row(entry: Dictionary) -> Control:
-    var row := Panel.new()
-    var style := StyleBoxFlat.new()
-    style.bg_color = Color(0.075, 0.075, 0.068, 0.94)
-    style.border_color = Color(0.23, 0.22, 0.19, 1)
-    style.set_border_width_all(1)
-    style.set_corner_radius_all(10)
-    row.add_theme_stylebox_override("panel", style)
-    row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
-    var icon := Panel.new()
-    icon.position = Vector2(10, 14)
-    icon.size = Vector2(42, 42)
-    var icon_style := StyleBoxFlat.new()
-    icon_style.bg_color = Color(0.30,0.42,0.30,0.95) if _active_tab == "Foodstuff" else Color(0.42,0.34,0.20,0.95)
-    icon_style.border_color = Color(0.72,0.62,0.42,0.65)
-    icon_style.set_border_width_all(1)
-    icon_style.set_corner_radius_all(10)
-    icon.add_theme_stylebox_override("panel", icon_style)
-    row.add_child(icon)
+func _make_item_button(entry: Dictionary) -> Button:
+    var button := Button.new()
+    button.text = str(entry.get("name", "Item")) + "\n× " + str(entry.get("amount", 0))
+    button.tooltip_text = str(entry.get("description", ""))
+    button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    button.focus_mode = Control.FOCUS_NONE
+    button.mouse_filter = Control.MOUSE_FILTER_STOP
+    button.pressed.connect(_select_entry.bind(entry))
+    _style_item_button(button, false)
+    return button
 
-    var name_label := Label.new()
-    name_label.text = str(entry.get("name", "Item"))
-    name_label.position = Vector2(64, 8)
-    name_label.size = Vector2(0, 25)
-    name_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-    name_label.anchor_right = 0.55
-    name_label.offset_right = -8.0
-    name_label.add_theme_font_size_override("font_size", 17)
-    name_label.add_theme_color_override("font_color", Color(0.93, 0.88, 0.75, 1))
-    row.add_child(name_label)
+func _style_item_button(button: Button, selected: bool) -> void:
+    var normal := StyleBoxFlat.new()
+    normal.bg_color = Color(0.105, 0.14, 0.16, 0.98) if not selected else Color(0.30, 0.27, 0.19, 1)
+    normal.border_color = Color(0.36, 0.43, 0.44, 1) if not selected else Color(0.86, 0.70, 0.39, 1)
+    normal.set_border_width_all(2 if selected else 1)
+    normal.set_corner_radius_all(11)
+    var hover := normal.duplicate() as StyleBoxFlat
+    hover.bg_color = Color(0.18, 0.22, 0.23, 1)
+    button.add_theme_stylebox_override("normal", normal)
+    button.add_theme_stylebox_override("hover", hover)
+    button.add_theme_stylebox_override("pressed", hover)
+    button.add_theme_color_override("font_color", Color(0.94, 0.88, 0.73, 1))
+    button.add_theme_font_size_override("font_size", 16)
 
-    var description := Label.new()
-    description.text = str(entry.get("description", ""))
-    description.position = Vector2(64, 36)
-    description.size = Vector2(0, 22)
-    description.set_anchors_preset(Control.PRESET_TOP_WIDE)
-    description.anchor_right = 0.74
-    description.offset_right = -8.0
-    description.add_theme_font_size_override("font_size", 12)
-    description.add_theme_color_override("font_color", Color(0.59, 0.61, 0.60, 1))
-    row.add_child(description)
+func _select_entry(entry: Dictionary) -> void:
+    _selected_entry = entry
+    _selected_id = str(entry.get("id", ""))
+    for child in item_grid.get_children():
+        if child is Button:
+            _style_item_button(child, false)
+    queue_redraw()
+    _refresh_detail_only()
 
-    var amount := Label.new()
-    amount.text = "× %d" % int(entry.get("amount", 0))
-    amount.position = Vector2(0, 20)
-    amount.size = Vector2(0, 28)
-    amount.set_anchors_preset(Control.PRESET_TOP_WIDE)
-    amount.anchor_left = 0.55
-    amount.anchor_right = 0.73
-    amount.offset_left = 4.0
-    amount.offset_right = -8.0
-    amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-    amount.add_theme_font_size_override("font_size", 17)
-    amount.add_theme_color_override("font_color", Color(0.84, 0.77, 0.59, 1))
-    row.add_child(amount)
+func _refresh_detail_only() -> void:
+    if _selected_id == "":
+        return
+    detail_title.text = str(_selected_entry.get("name", "ITEM"))
+    detail_text.text = str(_selected_entry.get("description", ""))
+    carry_button.visible = _active_tab == "Equipment"
+    carry_button.disabled = inventory.equipment.has(_selected_id) or inventory.equipment.size() >= inventory.equipment_capacity
 
-    if _active_tab == "Equipment":
-        var carry := Button.new()
-        carry.text = "CARRY"
-        carry.position = Vector2(0, 16)
-        carry.size = Vector2(0, 40)
-        carry.set_anchors_preset(Control.PRESET_TOP_WIDE)
-        carry.anchor_left = 0.75
-        carry.anchor_right = 0.98
-        carry.offset_left = 4.0
-        carry.offset_right = -4.0
-        carry.focus_mode = Control.FOCUS_NONE
-        carry.disabled = inventory.equipment.has(str(entry.get("id", ""))) or inventory.equipment.size() >= inventory.equipment_capacity
-        carry.pressed.connect(_equip_entry.bind(str(entry.get("id", ""))))
-        row.add_child(carry)
-    return row
-
-func _equip_entry(item_id: String) -> void:
-    if inventory.equip(item_id):
-        _refresh()
+func _carry_selected() -> void:
+    if inventory and _active_tab == "Equipment" and _selected_id != "":
+        if inventory.equip(_selected_id):
+            _refresh()
