@@ -2,10 +2,15 @@ class_name OdysseyMapUI
 extends CanvasLayer
 
 var discovery: OdysseyDiscoverySystem
+var player: Odysseus
 var panel: Panel
 var map_label: Label
 var title_label: Label
+var destination_box: VBoxContainer
 var _open := false
+
+func bind_player(value: Odysseus) -> void:
+    player = value
 
 func bind_discovery(value: OdysseyDiscoverySystem) -> void:
     discovery = value
@@ -45,13 +50,19 @@ func _build() -> void:
     close.pressed.connect(close_map)
     panel.add_child(close)
 
+    destination_box = VBoxContainer.new()
+    destination_box.position = Vector2(28, 72)
+    destination_box.size = Vector2(650, 390)
+    destination_box.add_theme_constant_override("separation", 8)
+    panel.add_child(destination_box)
+
     map_label = Label.new()
-    map_label.position = Vector2(28, 74)
-    map_label.size = Vector2(650, 390)
+    map_label.custom_minimum_size = Vector2(0, 50)
+    map_label.size = Vector2(650, 50)
     map_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     map_label.add_theme_font_size_override("font_size", 17)
     map_label.add_theme_color_override("font_color", Color(0.88, 0.90, 0.86, 1))
-    panel.add_child(map_label)
+    destination_box.add_child(map_label)
 
 func _refresh(_id: String) -> void:
     if not map_label or not discovery:
@@ -62,6 +73,19 @@ func _refresh(_id: String) -> void:
         discovery.map_text()
     ]
     map_label.text = "\n".join(lines)
+
+func _fast_travel(id: String) -> void:
+    if player == null or discovery == null or not discovery.can_fast_travel_to(id):
+        return
+    var destination := discovery.fast_travel(id)
+    if destination == Vector3.INF:
+        return
+    player.global_position = destination + Vector3.UP * 0.9
+    player.velocity = Vector3.ZERO
+    close_map()
+    var hud := get_node_or_null("../../GameHUD") as OdysseyGameHUD
+    if hud:
+        hud.show_message("Travelled to " + str(discovery.landmarks[id].title) + ".", 3.0)
 
 func toggle() -> void:
     if _open:
