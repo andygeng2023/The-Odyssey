@@ -54,7 +54,7 @@ func _make_water() -> void:
     var shader := Shader.new()
     shader.code = """
 shader_type spatial;
-render_mode blend_mix, cull_disabled, depth_draw_alpha_prepass;
+render_mode blend_mix, cull_disabled;
 uniform vec4 water_color : source_color = vec4(0.035, 0.38, 0.54, 0.88);
 uniform float wave_height = 0.085;
 uniform float wave_scale = 0.18;
