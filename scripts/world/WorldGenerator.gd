@@ -117,6 +117,26 @@ func _make_terrain() -> void:
     for x in range(-108, 109, 27):
         _make_rock(Vector3(float(x), 0.0, 34.0 + sin(float(x) * 0.13) * 6.0))
 
+    # Natural traversal test geometry: low terrace steps and a steep cliff path.
+    # These use the same static collision primitives as the visible geometry so
+    # step-up and auto-climb can be exercised without special debug code.
+    for data in [[0.15, 0.0], [0.28, 1.2], [0.34, 2.4]]:
+        var step_height: float = data[0]
+        var step_z: float = 16.0 + data[1]
+        _make_box("TerraceStep", Vector3(-48, step_height * 0.5, step_z), Vector3(3.8, step_height, 1.0), Color(0.42, 0.35, 0.25, 1), true)
+
+    var cliff_path := StaticBody3D.new()
+    cliff_path.name = "CliffPath"
+    cliff_path.position = Vector3(-32, 1.25, 28)
+    cliff_path.rotation_degrees.x = -58.0
+    add_child(cliff_path)
+    _make_box_mesh(cliff_path, Vector3(6.0, 2.0, 9.0), Color(0.30, 0.31, 0.27, 1))
+    var cliff_shape := CollisionShape3D.new()
+    var cliff_box := BoxShape3D.new()
+    cliff_box.size = Vector3(6.0, 2.0, 9.0)
+    cliff_shape.shape = cliff_box
+    cliff_path.add_child(cliff_shape)
+
 func _make_expansive_regions() -> void:
     # Original procedural landmarks distributed across the larger world.
     var regions := [
