@@ -226,6 +226,9 @@ func handle_mobile_action(action: String) -> void:
         "jump":
             mobile_jump_requested = true
             mobile_jump_buffer = 0.28
+        "action":
+            if swimming:
+                velocity.y = -2.8
         "sprint":
             mobile_sprint = not mobile_sprint
 
