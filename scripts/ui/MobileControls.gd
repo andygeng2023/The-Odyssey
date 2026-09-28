@@ -112,29 +112,21 @@ func _camera_zone(point: Vector2) -> bool:
     return point.x >= size.x * CAMERA_START_X and _button_at(point) == ""
 
 func _on_button_pressed(button: String) -> void:
-    var player := get_tree().get_first_node_in_group("odyssey_player") as Odysseus
-    if player:
-        match button:
-            "interact":
-                player.try_interact()
-            "jump":
-                player.handle_mobile_action("jump")
-            "sprint":
-                player.handle_mobile_action("sprint")
     if button == "map":
         var map_ui := get_node_or_null("../../MapLayer/MapUI") as OdysseyMapUI
         if map_ui:
             map_ui.toggle()
+        return
     if button == "backpack":
         var backpack_ui := get_node_or_null("../../BackpackLayer/BackpackUI") as OdysseyBackpackUI
         if backpack_ui:
             backpack_ui.toggle()
+        backpack_pressed.emit()
+        return
     if button == "interact":
         interact_pressed.emit()
-    elif button == "backpack":
-        backpack_pressed.emit()
-    else:
-        action_pressed.emit(button)
+        return
+    action_pressed.emit(button)
 
 func _on_gui_button_pressed(button: String) -> void:
     _on_button_pressed(button)
