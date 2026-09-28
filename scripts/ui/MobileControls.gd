@@ -114,26 +114,28 @@ func _on_gui_button_pressed(button: String) -> void:
     else:
         action_pressed.emit(button)
 
-func _gui_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
+    # Read the viewport-level input before any child Control can consume it.
+    # This is the authoritative route for touch/click gameplay controls.
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
             var button := _button_at(touch.position)
             if button != "":
                 _on_gui_button_pressed(button)
-                accept_event()
+                get_viewport().set_input_as_handled()
                 return
             var joystick := _joystick_center()
             if touch.position.distance_to(joystick) <= JOYSTICK_RADIUS and not _touch_roles.has(touch.index):
                 _touch_roles[touch.index] = "move"
                 move_vector = Vector2.ZERO
                 queue_redraw()
-                accept_event()
+                get_viewport().set_input_as_handled()
                 return
             if _camera_zone(touch.position) and not _touch_roles.has(touch.index):
                 _touch_roles[touch.index] = "camera"
                 _camera_last = touch.position
-                accept_event()
+                get_viewport().set_input_as_handled()
         else:
             if _touch_roles.has(touch.index):
                 var role: String = str(_touch_roles[touch.index])
@@ -141,7 +143,7 @@ func _gui_input(event: InputEvent) -> void:
                 if role == "move":
                     move_vector = Vector2.ZERO
                     queue_redraw()
-                accept_event()
+                get_viewport().set_input_as_handled()
     elif event is InputEventScreenDrag:
         var drag := event as InputEventScreenDrag
         if not _touch_roles.has(drag.index):
@@ -152,32 +154,32 @@ func _gui_input(event: InputEvent) -> void:
             var stick := Vector2.ZERO if offset.length() <= JOYSTICK_RADIUS * JOYSTICK_DEADZONE else offset.limit_length(JOYSTICK_RADIUS) / JOYSTICK_RADIUS
             move_vector = Vector2(stick.x, -stick.y)
             queue_redraw()
-            accept_event()
+            get_viewport().set_input_as_handled()
         elif role == "camera":
             var delta := drag.position - _camera_last
             _camera_last = drag.position
             if delta.length_squared() > 1.0:
                 camera_drag.emit(delta * CAMERA_SENSITIVITY)
-            accept_event()
+            get_viewport().set_input_as_handled()
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
         if event.pressed:
             var button := _button_at(event.position)
             if button != "":
                 _on_gui_button_pressed(button)
-                accept_event()
+                get_viewport().set_input_as_handled()
                 return
             if _camera_zone(event.position):
                 _mouse_camera_active = true
                 _camera_last = event.position
-                accept_event()
+                get_viewport().set_input_as_handled()
         else:
             _mouse_camera_active = false
-            accept_event()
+            get_viewport().set_input_as_handled()
     elif event is InputEventMouseMotion and _mouse_camera_active:
         var motion := event as InputEventMouseMotion
         if motion.relative.length_squared() > 1.0:
             camera_drag.emit(motion.relative * CAMERA_SENSITIVITY)
-        accept_event()
+        get_viewport().set_input_as_handled()
 
 func _draw() -> void:
     var center := _joystick_center()
