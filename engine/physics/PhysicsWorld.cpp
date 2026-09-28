@@ -9,6 +9,21 @@ bool inside(float x,float z,const Vec3& c,const Vec3& h,float pad){return std::a
 void PhysicsWorld::addBox(const BoxCollider& b){boxes_.push_back(b);}
 void PhysicsWorld::addRamp(const RampCollider& r){ramps_.push_back(r);}
 bool PhysicsWorld::isWater(float,float z) const{return z<-6.0f;}
+Vec3 PhysicsWorld::cameraPosition(const Vec3& target,const Vec3& desired,float radius) const{
+ Vec3 delta=desired-target; float len=delta.length(); if(len<0.001f)return target;
+ Vec3 dir=delta*(1.0f/len); float safe=std::max(0.2f,len);
+ const int samples=24;
+ for(int i=1;i<=samples;++i){
+  float t=static_cast<float>(i)/static_cast<float>(samples);
+  Vec3 p=target+delta*t;
+  bool blocked=false;
+  for(const auto& b:boxes_){
+   if(std::abs(p.x-b.center.x)<=b.half.x+radius&&std::abs(p.y-b.center.y)<=b.half.y+radius&&std::abs(p.z-b.center.z)<=b.half.z+radius){blocked=true;break;}
+  }
+  if(blocked){safe=std::max(0.2f,len*(static_cast<float>(i-1)/static_cast<float>(samples))-radius);break;}
+ }
+ return target+dir*safe;
+}
 SurfaceHit PhysicsWorld::surfaceAt(const PlayerBody&,float x,float z) const{
  SurfaceHit best; best.y=GROUND;
  for(const auto& r:ramps_) if(inside(x,z,r.center,r.half,0)){
