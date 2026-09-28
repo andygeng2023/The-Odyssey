@@ -185,13 +185,13 @@ func _layout() -> void:
 
 func _draw() -> void:
     var s := size
-    draw_rect(Rect2(Vector2.ZERO, s), Color(0.012, 0.018, 0.026, 0.88))
+    draw_rect(Rect2(Vector2.ZERO, s), Color(0.018, 0.028, 0.032, 0.72))
     var left := s.x * 0.035
     var top := s.y * 0.055
     var width := s.x * 0.93
     var height := s.y * 0.89
 
-    _draw_panel(Rect2(left, top, width, height), Color(0.075, 0.105, 0.125, 0.985), Color(0.86, 0.70, 0.39, 0.98), 3.0, 22.0)
+    _draw_panel(Rect2(left, top, width, height), Color(0.15, 0.18, 0.18, 0.97), Color(0.86, 0.70, 0.39, 0.98), 3.0, 22.0)
     draw_string(ThemeDB.fallback_font, Vector2(left + 26, top + 44), "ADVENTURE POUCH", HORIZONTAL_ALIGNMENT_LEFT, 330, 28, Color(0.97, 0.89, 0.69, 1))
     draw_string(ThemeDB.fallback_font, Vector2(left + 28, top + 67), "ODYSSEUS  •  TRAVEL KIT", HORIZONTAL_ALIGNMENT_LEFT, 330, 12, Color(0.61, 0.68, 0.70, 1))
 
@@ -199,11 +199,11 @@ func _draw() -> void:
     var content_height := height - 118
     var preview_width := clampf(width * PREVIEW_RATIO, 230.0, 360.0)
     var preview := Rect2(left, content_top, preview_width - 8, content_height)
-    _draw_panel(preview, Color(0.055, 0.075, 0.085, 1), Color(0.37, 0.44, 0.45, 1), 1.0, 16.0)
+    _draw_panel(preview, Color(0.20, 0.23, 0.21, 0.98), Color(0.37, 0.44, 0.45, 1), 1.0, 16.0)
     draw_string(ThemeDB.fallback_font, preview.position + Vector2(18, 30), "ODYSSEUS", HORIZONTAL_ALIGNMENT_LEFT, 200, 16, Color(0.89, 0.82, 0.65, 1))
 
     var right := Rect2(left + preview_width + 18, content_top, width - preview_width - 18, content_height)
-    _draw_panel(right, Color(0.045, 0.060, 0.068, 0.96), Color(0.25, 0.31, 0.33, 1), 1.0, 16.0)
+    _draw_panel(right, Color(0.12, 0.15, 0.15, 0.94), Color(0.25, 0.31, 0.33, 1), 1.0, 16.0)
 
 func _draw_panel(rect: Rect2, fill: Color, border: Color, border_width: float, radius: float) -> void:
     var style := StyleBoxFlat.new()
@@ -361,23 +361,45 @@ func _refresh() -> void:
 
 func _make_item_button(entry: Dictionary) -> Button:
     var button := Button.new()
-    button.text = str(entry.get("name", "Item")) + "\n× " + str(entry.get("amount", 0))
+    button.text = _item_icon(str(entry.get("id", ""))) + "  " + str(entry.get("name", "Item")) + "\n× " + str(entry.get("amount", 0))
     button.tooltip_text = str(entry.get("description", ""))
     button.alignment = HORIZONTAL_ALIGNMENT_LEFT
     button.focus_mode = Control.FOCUS_NONE
     button.mouse_filter = Control.MOUSE_FILTER_STOP
+    button.set_meta("item_id", str(entry.get("id", "")))
     button.pressed.connect(_select_entry.bind(entry))
-    _style_item_button(button, false)
+    _style_item_button(button, str(entry.get("id", "")) == _selected_id)
     return button
+
+func _item_icon(id: String) -> String:
+    match id:
+        "wood":
+            return "✦"
+        "stone":
+            return "◆"
+        "rope":
+            return "≋"
+        "fiber":
+            return "❧"
+        "herb":
+            return "✿"
+        "fruit":
+            return "●"
+        "shell":
+            return "◈"
+        "flint":
+            return "◇"
+        _:
+            return "•"
 
 func _style_item_button(button: Button, selected: bool) -> void:
     var normal := StyleBoxFlat.new()
-    normal.bg_color = Color(0.105, 0.14, 0.16, 0.98) if not selected else Color(0.30, 0.27, 0.19, 1)
+    normal.bg_color = Color(0.23, 0.27, 0.25, 0.92) if not selected else Color(0.62, 0.48, 0.23, 1)
     normal.border_color = Color(0.36, 0.43, 0.44, 1) if not selected else Color(0.86, 0.70, 0.39, 1)
     normal.set_border_width_all(2 if selected else 1)
     normal.set_corner_radius_all(11)
     var hover := normal.duplicate() as StyleBoxFlat
-    hover.bg_color = Color(0.18, 0.22, 0.23, 1)
+    hover.bg_color = Color(0.34, 0.38, 0.34, 1)
     button.add_theme_stylebox_override("normal", normal)
     button.add_theme_stylebox_override("hover", hover)
     button.add_theme_stylebox_override("pressed", hover)
@@ -389,7 +411,8 @@ func _select_entry(entry: Dictionary) -> void:
     _selected_id = str(entry.get("id", ""))
     for child in item_grid.get_children():
         if child is Button:
-            _style_item_button(child, false)
+            var is_selected := str(child.get_meta("item_id", "")) == _selected_id
+            _style_item_button(child, is_selected)
     queue_redraw()
     _refresh_detail_only()
 
