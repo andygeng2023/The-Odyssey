@@ -4,6 +4,8 @@ extends CharacterBody3D
 @onready var inventory: OdysseyInventory = $Inventory
 @onready var traversal: OdysseyTraversalSystem = $Traversal
 @onready var camera: OdysseyAdventureCamera = $"../CameraRig"
+@onready var survival: OdysseySurvivalSystem = $"../Systems/Survival"
+@onready var weather: OdysseyWeatherSystem = $"../Systems/Weather"
 
 const SAFE_SPAWN := Vector3(0.0, 0.80, 5.0)
 const FALL_LIMIT := -7.0
@@ -11,6 +13,8 @@ const WORLD_LIMIT := 75.0
 
 var climbing := false
 var swimming := false
+var underwater := false
+var water_volume: OdysseyWaterVolume
 var gravity := 18.0
 var speed := 4.5
 var sprint_speed := 6.4
@@ -38,6 +42,7 @@ func _ready() -> void:
     floor_max_angle = deg_to_rad(48.0)
     safe_margin = 0.08
     up_direction = Vector3.UP
+    water_volume = get_tree().get_first_node_in_group("water_volume") as OdysseyWaterVolume
     mobile_controls = get_node_or_null("../UI/MobileLayer/MobileControls") as OdysseyMobileControls
     if mobile_controls:
         mobile_controls.interact_pressed.connect(try_interact)
@@ -61,11 +66,13 @@ func _physics_process(delta: float) -> void:
     right = right.normalized()
     var world_direction := (right * input_direction.x + forward * input_direction.y).normalized() if input_direction.length_squared() > 0.0 else Vector3.ZERO
 
-    swimming = global_position.z < -17.0
+    swimming = water_volume != null and water_volume.contains(global_position)
+    underwater = water_volume != null and water_volume.is_underwater(global_position)
     climbing = is_on_wall() and not is_on_floor() and not swimming and global_position.y > 0.85 and world_direction.length_squared() > 0.05
 
     var sprinting := Input.is_action_pressed("sprint") or mobile_sprint
     var current_speed := sprint_speed if sprinting else speed
+    current_speed *= weather.movement_multiplier() if weather else 1.0
     var target_horizontal := world_direction * current_speed
     var horizontal := Vector3(velocity.x, 0.0, velocity.z)
     var accel := GROUND_ACCEL if is_on_floor() else AIR_ACCEL
@@ -79,9 +86,13 @@ func _physics_process(delta: float) -> void:
     ground_speed = horizontal.length()
 
     if swimming:
-        velocity.y = move_toward(velocity.y, 0.0, delta * 9.0)
-        if global_position.y < 0.45:
-            velocity.y += 2.2 * delta
+        velocity.y = move_toward(velocity.y, 0.0, delta * (5.0 if underwater else 9.0))
+        if Input.is_action_just_pressed("jump") or mobile_jump_requested:
+            velocity.y += 3.6
+            mobile_jump_requested = false
+            mobile_jump_buffer = 0.0
+        if underwater and global_position.y < -5.5:
+            velocity.y += 1.2 * delta
     elif climbing and traversal.can_continue_traversal():
         velocity.y = 2.6
     elif not is_on_floor():
@@ -99,6 +110,9 @@ func _physics_process(delta: float) -> void:
         apply_floor_snap()
 
     traversal.tick(delta, climbing, swimming)
+    if survival:
+        survival.set_weather(weather.condition_name() if weather else "clear")
+        survival.tick(delta, world_direction.length_squared() > 0.01, false, swimming, underwater)
     if traversal.stamina <= 0.0:
         climbing = false
     if is_on_floor() and get_floor_angle() > deg_to_rad(42.0):
@@ -152,6 +166,11 @@ func _recover_if_out_of_bounds() -> void:
         var hud := get_node_or_null("../UI/GameHUD") as OdysseyGameHUD
         if hud:
             hud.show_message("You reached the edge of the world. Returned to solid ground.", 2.5)
+
+func show_boat_message(text: String) -> void:
+    var hud := get_node_or_null("../UI/GameHUD") as OdysseyGameHUD
+    if hud:
+        hud.show_message(text, 3.0)
 
 func handle_mobile_action(action: String) -> void:
     match action:
