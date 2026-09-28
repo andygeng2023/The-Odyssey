@@ -68,7 +68,7 @@ void PhysicsWorld::step(PlayerBody& p,Vec3 wish,float dt,bool jump,bool sprint){
  dt=std::clamp(dt,0.0f,0.05f);wish.y=0;if(wish.lengthSq()>1)wish=wish.normalized();p.swimming=isWater(p.position.x,p.position.z);
  if(p.swimming){p.climbing=false;float speed=sprint?5:3.5f;Vec3 target=wish*speed;p.velocity.x=moveToward(p.velocity.x,target.x,14*dt);p.velocity.z=moveToward(p.velocity.z,target.z,14*dt);p.velocity.y=moveToward(p.velocity.y,(0.2f-p.position.y)*7,12*dt);p.position+=p.velocity*dt;return;}
  float speed=sprint?7:4.6f;Vec3 target=wish*speed;float accel=p.grounded?30:12;p.velocity.x=moveToward(p.velocity.x,target.x,accel*dt);p.velocity.z=moveToward(p.velocity.z,target.z,accel*dt);
- if(p.grounded&&jump){p.velocity.y=7.2f;p.grounded=false;p.climbing=false;} p.climbing=!p.grounded&&tryClimb(p,wish);if(p.climbing)p.velocity.y=2.6f;else p.velocity.y-=GRAVITY*dt;
+ if(p.grounded&&jump){p.velocity.y=7.2f;p.grounded=false;p.climbing=false;} p.climbing=!jump&&tryClimb(p,wish);if(p.climbing)p.velocity.y=2.6f;else p.velocity.y-=GRAVITY*dt;
  int n=std::clamp(static_cast<int>(std::ceil(dt/INTERNAL_DT)),1,8);float sub=dt/static_cast<float>(n);
  for(int i=0;i<n;++i){Vec3 h{p.velocity.x*sub,0,p.velocity.z*sub};if(!p.climbing&&p.grounded&&tryStep(p,h))continue;Vec3 next=p.position+Vec3{h.x,p.velocity.y*sub,h.z};
   if(!collidesAt(p,next))p.position=next;else{Vec3 x=p.position+Vec3{h.x,0,0},z=p.position+Vec3{0,0,h.z};if(!collidesAt(p,x))p.position=x;else p.velocity.x=0;if(!collidesAt(p,z))p.position=z;else p.velocity.z=0;}}
