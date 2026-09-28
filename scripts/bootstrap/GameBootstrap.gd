@@ -31,6 +31,7 @@ func _ready() -> void:
     hud.bind_player(player)
     hud.bind_inventory(inventory)
     backpack.bind_inventory(inventory)
+    map_ui.bind_player(player)
     map_ui.bind_discovery(discovery)
     weather.condition_changed.connect(_on_weather_changed)
     hud.show_message("The journey begins. Explore, gather, build, climb, sail and discover your way home.", 6.0)
