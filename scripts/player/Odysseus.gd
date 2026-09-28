@@ -26,7 +26,6 @@ const GROUND_DECEL := 28.0
 const AIR_ACCEL := 9.0
 const AIR_DECEL := 5.0
 const COYOTE_WINDOW := 0.14
-var mobile_jump_buffer := 0.0
 var _recovering := false
 var _visual_time := 0.0
 var _visual_base_y := 0.0
